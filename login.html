@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="Reading">
+<title>Sign in · Reading</title>
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #000000;
+    --surface-1: #1a1a19;
+    --surface-2: #262624;
+    --text-primary: #f0efec;
+    --text-secondary: #c3c2b7;
+    --text-muted: #8f8e86;
+    --accent: #3987e5;
+    --danger: #e5484d;
+    --grid: #333331;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text-primary); }
+  body {
+    font: 16px/1.4 -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+    display: flex; align-items: center; justify-content: center;
+    padding: max(24px, env(safe-area-inset-top)) 16px max(24px, env(safe-area-inset-bottom));
+  }
+  form { width: 100%; max-width: 360px; }
+  .mark { width: 56px; height: 56px; border-radius: 14px; background: var(--surface-1);
+          display: flex; align-items: center; justify-content: center; margin-bottom: 20px; }
+  .mark svg { width: 30px; height: 30px; }
+  h1 { font-size: 30px; font-weight: 700; letter-spacing: -.01em; margin: 0 0 6px; }
+  p { color: var(--text-secondary); margin: 0 0 28px; }
+  label { display: block; color: var(--text-muted); font-size: 13px; font-weight: 600;
+          letter-spacing: .04em; text-transform: uppercase; margin: 16px 0 6px; }
+  input { width: 100%; background: var(--surface-1); color: var(--text-primary); border: 1px solid var(--grid);
+          border-radius: 12px; padding: 14px; font: inherit; font-size: 17px; }
+  input:focus { outline: none; border-color: var(--accent); }
+  button { width: 100%; margin-top: 26px; background: var(--text-primary); color: #000; border: 0;
+           border-radius: 12px; padding: 15px; font: inherit; font-size: 17px; font-weight: 600; }
+  button:active { opacity: .85; }
+  .error { display: none; margin-top: 16px; color: var(--danger); font-size: 15px; }
+  .error.on { display: block; }
+</style>
+</head>
+<body>
+<form method="post" action="/login">
+  <div class="mark"><svg viewBox="0 0 24 24" fill="none" stroke="#f0efec" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5z"/><path d="M4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5"/></svg></div>
+  <h1>Reading</h1>
+  <p>Sign in to see your stats and highlights.</p>
+  <label for="u">Username</label>
+  <input id="u" name="username" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" required>
+  <label for="p">Password</label>
+  <input id="p" name="password" type="password" autocomplete="current-password" required>
+  <div class="error" id="err"></div>
+  <button type="submit">Sign in</button>
+</form>
+<script>
+  const e = new URLSearchParams(location.search).get("e");
+  const msg = {bad: "Wrong username or password.", locked: "Too many attempts. Try again in 15 minutes."}[e];
+  if (msg) { const el = document.getElementById("err"); el.textContent = msg; el.classList.add("on"); }
+  document.getElementById(e ? "p" : "u").focus();
+</script>
+</body>
+</html>
