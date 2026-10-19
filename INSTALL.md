@@ -74,6 +74,13 @@ curl -s -o /dev/null -w "%{http_code}\n" -u "reader:$(cat .password)" -X PROPFIN
 Optional, recommended: push the repo to a private GitHub repo and connect it as the service's
 source (Railway MCP `connect-service-source`, or the dashboard). Every push to `main` then deploys.
 
+### Adding a second reader to an existing server (optional)
+
+If someone already has a server and wants to add a partner rather than deploy a second one,
+generate a password and widget token for the new person and add them with `USERS` (see the
+README). Their KOReader is configured with `--user <name>`, and their iPhone build uses their
+widget token. Merge new entries into any existing `USERS` value rather than replacing it.
+
 ### Custom domain (optional)
 
 1. `railway domain <host> --port 8080 --json` prints a CNAME target and a `_railway-verify` TXT record.

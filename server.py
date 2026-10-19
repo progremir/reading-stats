@@ -23,11 +23,8 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
-DATA_DIR = Path(os.environ.get("DATA_DIR", "/data")) / "dav"
-USER = os.environ.get("AUTH_USER", "reader")
+ROOT = Path(os.environ.get("DATA_DIR", "/data"))
 PASSWORD = os.environ["AUTH_PASSWORD"]
-if len(PASSWORD) < 12:
-    raise SystemExit("AUTH_PASSWORD must be at least 12 characters: the login is reachable from the internet")
 TZ = ZoneInfo(os.environ.get("TZ_NAME", "UTC"))
 PORT = int(os.environ.get("PORT", "8080"))
 STATS_PATH = os.environ.get("STATS_PATH", "koreader/statistics.sqlite3")
@@ -35,8 +32,40 @@ HIGHLIGHTS_PATH = os.environ.get("HIGHLIGHTS_PATH", "koreader/highlights")
 MAX_UPLOAD = 512 * 1024 * 1024
 SESSION_SECRET = (os.environ.get("SESSION_SECRET") or hashlib.sha256(("session:" + PASSWORD).encode()).hexdigest()).encode()
 SESSION_DAYS = 180
-WIDGET_TOKEN = os.environ.get("WIDGET_TOKEN", "")
 COOKIE = "rs_session"
+
+
+class User:
+    """One reader: their login, widget token, time zone and WebDAV folder."""
+
+    def __init__(self, name, password, widget_token, tz, dav):
+        if len(password) < 12:
+            raise SystemExit("password for %r must be at least 12 characters: the login is reachable from the internet" % name)
+        self.name, self.password, self.widget_token, self.tz, self.dav = name, password, widget_token, tz, dav
+        (dav / HIGHLIGHTS_PATH).mkdir(parents=True, exist_ok=True)
+
+
+def load_users():
+    """AUTH_USER/AUTH_PASSWORD is the first account, with data in DATA_DIR/dav as before.
+    USERS adds more as JSON: {"name": {"password": "...", "widget_token": "...", "tz": "Europe/Berlin"}},
+    each with data in DATA_DIR/users/<name>/dav."""
+    users = [User(os.environ.get("AUTH_USER", "reader"), PASSWORD, os.environ.get("WIDGET_TOKEN", ""), TZ, ROOT / "dav")]
+    for name, cfg in json.loads(os.environ.get("USERS") or "{}").items():
+        if not name.isidentifier() or any(u.name == name for u in users):
+            raise SystemExit("USERS: bad or duplicate user name %r" % name)
+        tz = ZoneInfo(cfg["tz"]) if cfg.get("tz") else TZ
+        users.append(User(name, cfg["password"], cfg.get("widget_token", ""), tz, ROOT / "users" / name / "dav"))
+    tokens = [u.widget_token for u in users if u.widget_token]
+    if len(tokens) != len(set(tokens)):
+        raise SystemExit("every user needs a different widget_token")
+    return users
+
+
+USERS = load_users()
+
+
+def find_user(name):
+    return next((u for u in USERS if u.name == name), None)
 LOGIN_WINDOW, LOGIN_MAX_FAILS = 15 * 60, 10
 login_failures = {}  # ip -> [timestamps]
 recent_failures = []  # every failed attempt, all clients
@@ -59,8 +88,7 @@ def ip_locked(ip):
     login_failures[ip] = recent
     return len(recent) >= LOGIN_MAX_FAILS
 
-COVERS_DIR = DATA_DIR.parent / "covers"
-(DATA_DIR / HIGHLIGHTS_PATH).mkdir(parents=True, exist_ok=True)
+COVERS_DIR = ROOT / "covers"  # shared: covers are public and keyed by title
 COVERS_DIR.mkdir(parents=True, exist_ok=True)
 INDEX_HTML = (Path(__file__).parent / "index.html").read_text()
 LOGIN_HTML = (Path(__file__).parent / "login.html").read_text()
@@ -73,18 +101,26 @@ def make_session(user):
 
 
 def check_session(token):
+    """The User a session cookie belongs to, or None."""
     payload, _, sig = token.partition(".")
     if not payload or not hmac.compare_digest(sig, hmac.new(SESSION_SECRET, payload.encode(), hashlib.sha256).hexdigest()):
-        return False
+        return None
     try:
         data = json.loads(base64.urlsafe_b64decode(payload.encode()))
     except ValueError:
-        return False
-    return data.get("u") == USER and data.get("exp", 0) > time.time()
+        return None
+    if data.get("exp", 0) <= time.time():
+        return None
+    return find_user(data.get("u"))
 
 
-def credentials_ok(user, pw):
-    return hmac.compare_digest(user.encode(), USER.encode()) and hmac.compare_digest(pw.encode(), PASSWORD.encode())
+def credentials_ok(name, pw):
+    """The User with these credentials, or None. Checks every account so timing doesn't reveal names."""
+    found = None
+    for u in USERS:
+        if hmac.compare_digest(name.encode(), u.name.encode()) & hmac.compare_digest(pw.encode(), u.password.encode()):
+            found = u
+    return found
 
 
 def etag_of(path):
@@ -92,11 +128,12 @@ def etag_of(path):
     return '"%x-%x"' % (st.st_mtime_ns, st.st_size)
 
 
-def dav_path(url_path):
-    """Map /dav/<rel> to a file under DATA_DIR, refusing anything that escapes it."""
+def dav_path(url_path, user):
+    """Map /dav/<rel> to a file under the user's folder, refusing anything that escapes it."""
     rel = urllib.parse.unquote(url_path[len("/dav"):]).lstrip("/")
-    target = (DATA_DIR / rel).resolve()
-    if target != DATA_DIR.resolve() and DATA_DIR.resolve() not in target.parents:
+    root = user.dav.resolve()
+    target = (root / rel).resolve()
+    if target != root and root not in target.parents:
         return None
     return target
 
@@ -117,8 +154,9 @@ def propfind_entry(href, path):
     )
 
 
-def compute_stats():
-    db_path = DATA_DIR / STATS_PATH
+def compute_stats(user):
+    tz = user.tz
+    db_path = user.dav / STATS_PATH
     if not db_path.exists():
         return {"empty": True}
     # immutable: never read or create -wal/-shm files next to the uploaded db
@@ -140,18 +178,18 @@ def compute_stats():
     finally:
         con.close()
 
-    now = dt.datetime.now(TZ)
+    now = dt.datetime.now(tz)
     today = now.date()
     by_day = {}
     book_days, book_first = {}, {}
     for bid, start, duration in rows:
-        day = dt.datetime.fromtimestamp(start, TZ).date()
+        day = dt.datetime.fromtimestamp(start, tz).date()
         by_day[day] = by_day.get(day, 0) + duration
         book_days.setdefault(bid, set()).add(day)
         book_first[bid] = min(book_first.get(bid, start), start)
     pages_by_day = {}
     for (start,) in page_rows:
-        day = dt.datetime.fromtimestamp(start, TZ).date()
+        day = dt.datetime.fromtimestamp(start, tz).date()
         pages_by_day[day] = pages_by_day.get(day, 0) + 1
 
     def seconds_since(start_day):
@@ -182,19 +220,19 @@ def compute_stats():
             "authors": (authors or "").replace("\n", ", "),
             "md5": md5,
             "days": len(book_days.get(bid, ())),
-            "first_read": dt.datetime.fromtimestamp(book_first[bid], TZ).isoformat() if bid in book_first else None,
+            "first_read": dt.datetime.fromtimestamp(book_first[bid], tz).isoformat() if bid in book_first else None,
             "seconds": secs,
             "pages_read": read_pages,
             "pages": total,
             "progress": min(1, read_pages / total) if total else 0,
-            "last_open": dt.datetime.fromtimestamp(last_open, TZ).isoformat() if last_open else None,
+            "last_open": dt.datetime.fromtimestamp(last_open, tz).isoformat() if last_open else None,
         })
     book_list.sort(key=lambda b: b["last_open"] or "", reverse=True)
 
     week_start = today - dt.timedelta(days=today.weekday())
     return {
         "empty": False,
-        "updated": dt.datetime.fromtimestamp(db_path.stat().st_mtime, TZ).isoformat(),
+        "updated": dt.datetime.fromtimestamp(db_path.stat().st_mtime, tz).isoformat(),
         "today": by_day.get(today, 0),
         "week": seconds_since(week_start),
         "month": seconds_since(today.replace(day=1)),
@@ -217,10 +255,10 @@ def book_id(title):
     return hashlib.sha1(title_key(title).encode()).hexdigest()[:12]
 
 
-def compute_library():
+def compute_library(user):
     """Every book seen in reading stats or highlights, with its stats and highlights."""
-    stats = compute_stats()
-    hl = compute_highlights()
+    stats = compute_stats(user)
+    hl = compute_highlights(user)
     books = {}
     by_md5 = {}
     for b in stats.get("books", []):
@@ -273,7 +311,7 @@ def fetch_cover(title, authors):
     return None
 
 
-def cover_for(bid):
+def cover_for(bid, user):
     if len(bid) != 12 or any(c not in "0123456789abcdef" for c in bid):
         return None
     path = COVERS_DIR / (bid + ".jpg")
@@ -282,7 +320,7 @@ def cover_for(bid):
         return path.read_bytes()
     if miss.exists() and time.time() - miss.stat().st_mtime < 86400:
         return None
-    book = next((b for b in compute_library()["books"] if b["id"] == bid), None)
+    book = next((b for b in compute_library(user)["books"] if b["id"] == bid), None)
     if not book:
         return None
     data = fetch_cover(book["title"], book["authors"])
@@ -293,9 +331,9 @@ def cover_for(bid):
     return data
 
 
-def compute_widget():
+def compute_widget(user):
     """The small payload the iOS widget shows."""
-    lib = compute_library()
+    lib = compute_library(user)
     st = lib["stats"]
     reading = next((b for b in lib["books"] if b.get("last_open") and not b["finished"] and b["seconds"]), None)
     return {
@@ -353,8 +391,8 @@ def parse_clippings(text):
     return list(books.values())
 
 
-def compute_highlights():
-    folder = DATA_DIR / HIGHLIGHTS_PATH
+def compute_highlights(user):
+    folder = user.dav / HIGHLIGHTS_PATH
     books = []
     for path in folder.glob("*.json"):
         try:
@@ -412,26 +450,34 @@ class Handler(BaseHTTPRequestHandler):
         if self.command != "HEAD":
             self.wfile.write(body)
 
-    def basic_ok(self):
+    def basic_user(self):
         header = self.headers.get("Authorization", "")
         if header.startswith("Basic "):
             try:
-                user, _, pw = base64.b64decode(header[6:]).decode().partition(":")
+                name, _, pw = base64.b64decode(header[6:]).decode().partition(":")
             except ValueError:
-                return False
-            return credentials_ok(user, pw)
-        return False
+                return None
+            return credentials_ok(name, pw)
+        return None
 
-    def session_ok(self):
+    def session_user(self):
         for part in self.headers.get("Cookie", "").split(";"):
             name, _, value = part.strip().partition("=")
-            if name == COOKIE and check_session(value):
-                return True
-        return False
+            if name == COOKIE:
+                user = check_session(value)
+                if user:
+                    return user
+        return None
 
-    def widget_ok(self):
+    def widget_user(self):
         header = self.headers.get("Authorization", "")
-        return bool(WIDGET_TOKEN) and header.startswith("Bearer ") and hmac.compare_digest(header[7:].encode(), WIDGET_TOKEN.encode())
+        if not header.startswith("Bearer "):
+            return None
+        found = None
+        for u in USERS:
+            if u.widget_token and hmac.compare_digest(header[7:].encode(), u.widget_token.encode()):
+                found = u
+        return found
 
     def secure_flag(self):
         # Plain http only when running locally; everywhere else the cookie is https-only.
@@ -448,13 +494,13 @@ class Handler(BaseHTTPRequestHandler):
         form = urllib.parse.parse_qs(self.rfile.read(min(length, 4096)).decode(errors="replace"))
         if ip_locked(ip):
             return self.send(303, headers={"Location": "/login?e=locked"})
-        user, pw = form.get("username", [""])[0], form.get("password", [""])[0]
-        if not credentials_ok(user, pw):
+        user = credentials_ok(form.get("username", [""])[0], form.get("password", [""])[0])
+        if not user:
             note_failure(ip)
             return self.send(303, headers={"Location": "/login?e=bad"})
         login_failures.pop(ip, None)
         cookie = "%s=%s; Path=/; Max-Age=%d; HttpOnly; SameSite=Lax%s" % (
-            COOKIE, make_session(user), SESSION_DAYS * 86400, self.secure_flag())
+            COOKIE, make_session(user.name), SESSION_DAYS * 86400, self.secure_flag())
         return self.send(303, headers={"Location": "/", "Set-Cookie": cookie})
 
     def drain(self):
@@ -475,21 +521,24 @@ class Handler(BaseHTTPRequestHandler):
             self.drain()
             return self.send(303, headers={"Location": "/login",
                                            "Set-Cookie": "%s=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax%s" % (COOKIE, self.secure_flag())})
-        if path == "/api/widget" and self.widget_ok():
-            body = json.dumps(compute_widget()).encode()
+        widget_user = path == "/api/widget" and self.widget_user()
+        if widget_user:
+            body = json.dumps(compute_widget(widget_user)).encode()
             return self.send(200, body, "application/json", {"Cache-Control": "no-store"})
         if path == "/dav" or path.startswith("/dav/"):
             ip = self.client_ip()
             if ip_locked(ip):
                 self.drain()
                 return self.send(429, b"too many failed logins")
-            if not self.basic_ok():
+            user = self.basic_user()
+            if not user:
                 if self.headers.get("Authorization"):
                     note_failure(ip)
                 self.drain()
                 return self.send(401, b"auth required", headers={"WWW-Authenticate": 'Basic realm="reading"'})
-            return self.handle_dav(path)
-        if not (self.session_ok() or self.basic_ok()):
+            return self.handle_dav(path, user)
+        user = self.session_user() or self.basic_user()
+        if not user:
             if self.headers.get("Authorization", "").startswith("Basic "):
                 note_failure(self.client_ip())
             self.drain()
@@ -499,27 +548,27 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/":
             return self.send(200, INDEX_HTML.encode(), "text/html; charset=utf-8")
         if path == "/api/stats":
-            body = json.dumps(compute_stats()).encode()
+            body = json.dumps(compute_stats(user)).encode()
             return self.send(200, body, "application/json", {"Cache-Control": "no-store"})
         if path == "/api/library":
-            body = json.dumps(compute_library()).encode()
+            body = json.dumps(compute_library(user)).encode()
             return self.send(200, body, "application/json", {"Cache-Control": "no-store"})
         if path.startswith("/cover/"):
-            data = cover_for(path[len("/cover/"):])
+            data = cover_for(path[len("/cover/"):], user)
             if not data:
                 return self.send(404, b"no cover")
             return self.send(200, data, "image/jpeg", {"Cache-Control": "private, max-age=604800"})
         if path == "/api/highlights":
-            body = json.dumps(compute_highlights()).encode()
+            body = json.dumps(compute_highlights(user)).encode()
             return self.send(200, body, "application/json", {"Cache-Control": "no-store"})
         if path == "/api/widget":
-            body = json.dumps(compute_widget()).encode()
+            body = json.dumps(compute_widget(user)).encode()
             return self.send(200, body, "application/json", {"Cache-Control": "no-store"})
         self.drain()
         self.send(404, b"not found")
 
-    def handle_dav(self, path):
-        target = dav_path(path)
+    def handle_dav(self, path, user):
+        target = dav_path(path, user)
         if target is None:
             self.drain()
             return self.send(403, b"forbidden")
@@ -532,7 +581,7 @@ class Handler(BaseHTTPRequestHandler):
             self.drain()
             if not target.exists():
                 return self.send(404, b"not found")
-            rel = target.relative_to(DATA_DIR.resolve()).as_posix()
+            rel = target.relative_to(user.dav.resolve()).as_posix()
             base = "/dav/" if rel == "." else "/dav/" + rel + ("/" if target.is_dir() else "")
             parts = [propfind_entry(base, target)]
             if target.is_dir() and self.headers.get("Depth", "1") != "0":
@@ -605,5 +654,5 @@ class Handler(BaseHTTPRequestHandler):
 
 
 if __name__ == "__main__":
-    print("listening on %d, data in %s" % (PORT, DATA_DIR), flush=True)
+    print("listening on %d, data in %s, users: %s" % (PORT, ROOT, ", ".join(u.name for u in USERS)), flush=True)
     ThreadingHTTPServer(("", PORT), Handler).serve_forever()

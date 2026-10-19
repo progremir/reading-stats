@@ -72,13 +72,28 @@ AUTH_PASSWORD=demo-password-123 DATA_DIR=./demo-data PORT=8080 python3 server.py
 | `DATA_DIR` | Where data lives, default `/data`; mount a persistent volume there |
 | `TZ_NAME` | IANA time zone for "today" and streaks, default `UTC` |
 | `PORT` | Listen port, default `8080` |
+| `USERS` | More accounts on the same server, as JSON (see below) |
+
+### More than one reader
+
+One server can hold several people's data, each signing in and syncing with their own account.
+`AUTH_USER`/`AUTH_PASSWORD`/`WIDGET_TOKEN` is the first account (data in `DATA_DIR/dav`). Add
+others with `USERS`:
+
+```json
+{"alice": {"password": "at-least-12-chars", "widget_token": "random-hex", "tz": "Europe/Berlin"}}
+```
+
+Each extra account keeps its data in `DATA_DIR/users/<name>/dav`. Its KOReader signs in as that
+name, its iPhone build uses that account's widget token, and `tz` defaults to `TZ_NAME`.
 
 ## Security
 
 - The browser signs in at `/login`; sessions are HttpOnly, Secure, SameSite=Lax cookies.
 - WebDAV uses Basic auth (KOReader's only option); keep the server behind HTTPS.
 - Failed logins are rate-limited per client, and slowed down for everyone when many fail at once.
-- The widget token can only read the widget summary.
+- A widget token can only read its own account's widget summary.
+- Accounts can't see each other's data: WebDAV, the web app and widgets are scoped to the signed-in user.
 
 ## License
 
