@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="Reading">
+<title>Admin · Reading</title>
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #000000;
+    --surface-1: #1a1a19;
+    --surface-2: #262624;
+    --text-primary: #f0efec;
+    --text-secondary: #c3c2b7;
+    --text-muted: #8f8e86;
+    --accent: #3987e5;
+    --danger: #e5484d;
+    --grid: #333331;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--text-primary); }
+  body { font: 16px/1.4 -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+         -webkit-tap-highlight-color: transparent; }
+  main { max-width: 680px; margin: 0 auto;
+         padding: max(16px, env(safe-area-inset-top)) 16px max(32px, env(safe-area-inset-bottom)); }
+  a { color: var(--accent); text-decoration: none; }
+  .back { display: inline-flex; align-items: center; gap: 4px; font-size: 16px; padding: 6px 0; }
+  h1 { font-size: 30px; font-weight: 700; letter-spacing: -.01em; margin: 8px 0 2px; }
+  h2 { font-size: 13px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase;
+       color: var(--text-muted); margin: 30px 0 10px; }
+  .sub { color: var(--text-muted); font-size: 14px; }
+  .card { background: var(--surface-1); border-radius: 14px; padding: 14px; }
+  .card + .card { margin-top: 10px; }
+  label { display: block; color: var(--text-muted); font-size: 13px; font-weight: 600;
+          letter-spacing: .04em; text-transform: uppercase; margin: 14px 0 6px; }
+  label:first-child { margin-top: 0; }
+  label.check { display: flex; align-items: center; gap: 8px; text-transform: none; letter-spacing: 0;
+                font-size: 15px; font-weight: 500; color: var(--text-secondary); }
+  input[type=text] { width: 100%; background: var(--surface-2); color: var(--text-primary); border: 1px solid var(--grid);
+                     border-radius: 10px; padding: 12px; font: inherit; font-size: 17px; }
+  input:focus { outline: none; border-color: var(--accent); }
+  button { background: var(--text-primary); color: #000; border: 0; border-radius: 10px; padding: 11px 16px;
+           font: inherit; font-size: 16px; font-weight: 600; cursor: pointer; }
+  button.wide { width: 100%; margin-top: 16px; padding: 13px; }
+  .acts { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+  .acts button { background: var(--surface-2); color: var(--text-primary); font-size: 14px; font-weight: 500; padding: 8px 12px; }
+  .acts button.danger { color: var(--danger); }
+  .msg { margin-top: 12px; font-size: 15px; color: var(--danger); }
+  .user .t { font-weight: 600; font-size: 17px; }
+  .user .m { color: var(--text-muted); font-size: 13px; margin-top: 2px; }
+  .badge { display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+           background: var(--surface-2); color: var(--text-secondary); border-radius: 6px; padding: 2px 6px; margin-left: 6px;
+           vertical-align: 2px; }
+  .badge.off { background: #3a1416; color: #ff9da0; }
+  .badge.warn { background: #3a2a0c; color: #f5d27a; }
+  .secret { margin-top: 12px; background: #0f2a17; border-radius: 12px; padding: 14px; }
+  .secret code { display: block; font: 600 20px/1.3 ui-monospace, "SF Mono", Menlo, monospace; letter-spacing: .03em;
+                 color: #b6f2c6; margin: 6px 0; word-break: break-all; user-select: all; }
+  .secret .sub { color: #8fd1a3; }
+  .devs { margin-top: 10px; border-top: 1px solid var(--grid); padding-top: 10px; font-size: 14px; color: var(--text-secondary); }
+  .devs div { display: flex; justify-content: space-between; gap: 8px; padding: 4px 0; }
+  .devs button { background: none; color: var(--danger); padding: 0; font-size: 14px; font-weight: 500; }
+</style>
+</head>
+<body>
+<main>
+  <a class="back" href="/account">‹ Account</a>
+  <h1>People</h1>
+  <div class="sub">Everyone with an account on this server. Each person sees only their own reading.</div>
+
+  <h2>Add a person</h2>
+  <form class="card" id="add">
+    <label for="name">Username</label>
+    <input type="text" id="name" autocapitalize="none" autocorrect="off" spellcheck="false" pattern="[a-z][a-z0-9_]{1,31}" required
+           placeholder="lowercase, e.g. aijan">
+    <label for="tz">Time zone</label>
+    <input type="text" id="tz" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="e.g. Asia/Almaty">
+    <label class="check"><input type="checkbox" id="adm"> Admin (can manage people)</label>
+    <button class="wide" type="submit">Create account</button>
+    <div id="add-out"></div>
+  </form>
+
+  <h2>Accounts</h2>
+  <div id="users"></div>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+let me = 0;
+const open = new Set();
+
+async function api(path, body) {
+  const opts = body === undefined ? {cache: "no-store"}
+    : {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(body)};
+  const r = await fetch(path, opts);
+  if (r.status === 401) { location.href = "/login"; throw new Error("signed out"); }
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(data.error || "Something went wrong.");
+  return data;
+}
+
+function when(ts) {
+  if (!ts) return "never";
+  const s = Date.now() / 1000 - ts;
+  if (s < 120) return "just now";
+  if (s < 3600) return Math.round(s / 60) + " min ago";
+  if (s < 86400) return Math.round(s / 3600) + " h ago";
+  if (s < 86400 * 30) return Math.round(s / 86400) + " days ago";
+  return new Date(ts * 1000).toLocaleDateString();
+}
+
+const secretBox = (title, value, note) =>
+  `<div class="secret"><div class="sub">${title}</div><code>${esc(value)}</code><div class="sub">${note}</div></div>`;
+
+async function load() {
+  const data = await api("/api/admin/users");
+  me = data.me;
+  $("users").innerHTML = data.users.map(u => {
+    const self = u.id === me;
+    const badges = (u.is_admin ? '<span class="badge">Admin</span>' : "")
+      + (u.disabled ? '<span class="badge off">Disabled</span>' : "")
+      + (u.must_change_password ? '<span class="badge warn">Temp password</span>' : "")
+      + (self ? '<span class="badge">You</span>' : "");
+    const acts = [
+      ["devices", open.has(u.id) ? "Hide devices" : "Devices"],
+      ["new_device", "New e-reader password"],
+      ...(self ? [] : [
+        ["reset_password", "Reset password"],
+        [u.is_admin ? "remove_admin" : "make_admin", u.is_admin ? "Remove admin" : "Make admin"],
+        [u.disabled ? "enable" : "disable", u.disabled ? "Enable" : "Disable"],
+        ["delete", "Delete", "danger"],
+      ]),
+      ["set_tz", "Time zone"],
+    ];
+    return `<div class="card user" id="u${u.id}">
+      <div class="t">${esc(u.name)}${badges}</div>
+      <div class="m">${esc(u.tz || "server time zone")} · created ${when(u.created_at)} · active ${when(u.last_active)} · ${u.devices} device${u.devices === 1 ? "" : "s"}</div>
+      <div class="acts">${acts.map(([a, label, cls]) =>
+        `<button class="${cls || ""}" data-id="${u.id}" data-name="${esc(u.name)}" data-act="${a}">${label}</button>`).join("")}</div>
+      <div class="out"></div><div class="devs" ${open.has(u.id) ? "" : "hidden"}></div>
+    </div>`;
+  }).join("");
+  for (const id of open) showDevices(id);
+}
+
+async function showDevices(id) {
+  const box = document.querySelector(`#u${id} .devs`);
+  const {devices} = await api("/api/admin/users/action", {id, action: "devices"});
+  box.hidden = false;
+  box.innerHTML = devices.length ? devices.map(d => `<div><span>${d.kind === "sync" ? "E-reader" : "iPhone"} · ${esc(d.label)} · used ${when(d.last_used_at)}</span>
+    <button data-id="${id}" data-dev="${d.id}" data-act="revoke_device">Revoke</button></div>`).join("") : "No devices.";
+}
+
+document.addEventListener("click", async e => {
+  const b = e.target.closest("button[data-act]");
+  if (!b) return;
+  const id = +b.dataset.id, act = b.dataset.act, name = b.dataset.name;
+  const out = document.querySelector(`#u${id} .out`);
+  const ask = {
+    reset_password: `Reset ${name}'s password? They'll be signed out and must choose a new one. Their e-readers keep syncing.`,
+    disable: `Disable ${name}? They're signed out, and their e-readers and widgets stop working until enabled again.`,
+    delete: `Delete ${name}'s account? Their devices stop working. Their reading data is kept on the server in a "deleted" folder.`,
+    remove_admin: `Remove admin from ${name}?`,
+  }[act];
+  if (ask && !confirm(ask)) return;
+  try {
+    if (act === "devices") {
+      open.has(id) ? open.delete(id) : open.add(id);
+      return load();
+    }
+    const body = {id, action: act};
+    if (act === "new_device") body.label = prompt(`Name for ${name}'s e-reader`, "Kindle") ?? "";
+    if (act === "set_tz") {
+      const tz = prompt(`Time zone for ${name} (IANA name, blank for the server's)`, "");
+      if (tz === null) return;
+      body.tz = tz;
+    }
+    if (act === "revoke_device") body.device_id = +b.dataset.dev;
+    const res = await api("/api/admin/users/action", body);
+    await load();
+    const fresh = document.querySelector(`#u${id} .out`);
+    if (res.password) fresh.innerHTML = secretBox("Temporary password, shown only now:", res.password,
+      `Give it to ${esc(name)}. They'll choose their own when they sign in.`);
+    if (res.secret) fresh.innerHTML = secretBox("E-reader password, shown only now:", res.secret,
+      `In KOReader's sync settings use username <b>${esc(name)}</b> and this password.`);
+  } catch (err) { (document.querySelector(`#u${id} .out`) || out).innerHTML = `<div class="msg">${esc(err.message)}</div>`; }
+});
+
+$("add").addEventListener("submit", async e => {
+  e.preventDefault();
+  const name = $("name").value.trim().toLowerCase();
+  try {
+    const {password} = await api("/api/admin/users", {name, tz: $("tz").value.trim(), is_admin: $("adm").checked});
+    $("add").reset();
+    $("add-out").innerHTML = secretBox(`Account <b>${esc(name)}</b> created. Temporary password, shown only now:`, password,
+      "They sign in with it and choose their own. Then make an e-reader password for their Kindle below.");
+    load();
+  } catch (err) { $("add-out").innerHTML = `<div class="msg">${esc(err.message)}</div>`; }
+});
+
+load().catch(err => { $("users").innerHTML = `<div class="msg">${esc(err.message)}</div>`; });
+</script>
+</body>
+</html>

@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="Reading">
+<title>Account · Reading</title>
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #000000;
+    --surface-1: #1a1a19;
+    --surface-2: #262624;
+    --text-primary: #f0efec;
+    --text-secondary: #c3c2b7;
+    --text-muted: #8f8e86;
+    --accent: #3987e5;
+    --danger: #e5484d;
+    --ok: #3fb950;
+    --grid: #333331;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--text-primary); }
+  body { font: 16px/1.4 -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+         -webkit-tap-highlight-color: transparent; }
+  main { max-width: 680px; margin: 0 auto;
+         padding: max(16px, env(safe-area-inset-top)) 16px max(32px, env(safe-area-inset-bottom)); }
+  a { color: var(--accent); text-decoration: none; }
+  .back { display: inline-flex; align-items: center; gap: 4px; font-size: 16px; padding: 6px 0; }
+  h1 { font-size: 30px; font-weight: 700; letter-spacing: -.01em; margin: 8px 0 2px; }
+  h2 { font-size: 13px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase;
+       color: var(--text-muted); margin: 30px 0 10px; }
+  .sub { color: var(--text-muted); font-size: 14px; }
+  .card { background: var(--surface-1); border-radius: 14px; padding: 14px; }
+  .card + .card { margin-top: 10px; }
+  .notice { background: #3a2a0c; color: #f5d27a; border-radius: 12px; padding: 12px 14px; margin-top: 16px; }
+  label { display: block; color: var(--text-muted); font-size: 13px; font-weight: 600;
+          letter-spacing: .04em; text-transform: uppercase; margin: 14px 0 6px; }
+  label:first-child { margin-top: 0; }
+  input { width: 100%; background: var(--surface-2); color: var(--text-primary); border: 1px solid var(--grid);
+          border-radius: 10px; padding: 12px; font: inherit; font-size: 17px; }
+  input:focus { outline: none; border-color: var(--accent); }
+  button { background: var(--text-primary); color: #000; border: 0; border-radius: 10px; padding: 11px 16px;
+           font: inherit; font-size: 16px; font-weight: 600; cursor: pointer; }
+  button.wide { width: 100%; margin-top: 16px; padding: 13px; }
+  button.ghost { background: var(--surface-2); color: var(--text-primary); font-weight: 500; }
+  button.danger { background: transparent; color: var(--danger); padding: 6px 0; font-weight: 500; }
+  button:disabled { opacity: .5; }
+  .msg { margin-top: 12px; font-size: 15px; min-height: 0; }
+  .msg.err { color: var(--danger); }
+  .msg.ok { color: var(--ok); }
+  .row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 0;
+         border-top: 1px solid var(--grid); }
+  .row:first-child { border-top: 0; padding-top: 0; }
+  .row:last-child { padding-bottom: 0; }
+  .row .t { font-weight: 600; }
+  .row .m { color: var(--text-muted); font-size: 13px; margin-top: 2px; }
+  .badge { display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+           background: var(--surface-2); color: var(--text-secondary); border-radius: 6px; padding: 2px 6px; margin-left: 6px;
+           vertical-align: 2px; }
+  .secret { margin-top: 12px; background: #0f2a17; border-radius: 12px; padding: 14px; }
+  .secret code { display: block; font: 600 22px/1.3 ui-monospace, "SF Mono", Menlo, monospace; letter-spacing: .04em;
+                 color: #b6f2c6; margin: 6px 0; word-break: break-all; user-select: all; }
+  .secret .sub { color: #8fd1a3; }
+  .inline { display: flex; gap: 8px; margin-top: 12px; }
+  .inline input { flex: 1; }
+  .links { display: flex; gap: 18px; margin-top: 30px; }
+  .empty { color: var(--text-muted); font-size: 15px; }
+</style>
+</head>
+<body>
+<main>
+  <a class="back" href="/" id="back">‹ Reading</a>
+  <h1 id="who">Account</h1>
+  <div class="sub" id="role"></div>
+  <div class="notice" id="must" hidden>Choose a new password to finish signing in. The one you were given was temporary.</div>
+
+  <h2>Password</h2>
+  <form class="card" id="pw">
+    <label for="cur">Current password</label>
+    <input id="cur" type="password" autocomplete="current-password" required>
+    <label for="new">New password</label>
+    <input id="new" type="password" autocomplete="new-password" minlength="12" required>
+    <label for="rep">New password again</label>
+    <input id="rep" type="password" autocomplete="new-password" minlength="12" required>
+    <button class="wide" type="submit">Change password</button>
+    <div class="msg" id="pw-msg"></div>
+    <div class="sub" style="margin-top:10px">Changing it signs out your other browsers and phones. E-readers and widgets keep working: they use their own device passwords.</div>
+  </form>
+
+  <div id="rest">
+    <h2>E-readers</h2>
+    <div class="card">
+      <div id="sync-list"></div>
+      <div class="sub" style="margin-top:12px">Each e-reader syncs with its own password, so your account password never sits on the device. Make one, enter it in KOReader with your username, and revoke it if the device is lost.</div>
+      <form class="inline" id="new-dev">
+        <input id="dev-label" placeholder="Name, e.g. Kindle Paperwhite" maxlength="60">
+        <button type="submit">Create</button>
+      </form>
+      <div id="dev-secret"></div>
+    </div>
+
+    <h2>iPhone widgets</h2>
+    <div class="card">
+      <div id="widget-list"></div>
+      <div class="sub" style="margin-top:12px">The Reading app adds its phone here when you sign in to it.</div>
+    </div>
+
+    <h2>Signed in</h2>
+    <div class="card">
+      <div id="sessions"></div>
+      <button class="wide ghost" id="others">Sign out everywhere else</button>
+    </div>
+  </div>
+
+  <div class="links">
+    <a href="/admin" id="admin" hidden>Admin</a>
+    <a href="/logout">Sign out</a>
+  </div>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+async function api(path, body) {
+  const opts = body === undefined ? {cache: "no-store"}
+    : {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(body)};
+  const r = await fetch(path, opts);
+  if (r.status === 401) { location.href = "/login"; throw new Error("signed out"); }
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(data.error || "Something went wrong.");
+  return data;
+}
+
+function when(ts) {
+  if (!ts) return "never";
+  const s = Date.now() / 1000 - ts;
+  if (s < 120) return "just now";
+  if (s < 3600) return Math.round(s / 60) + " min ago";
+  if (s < 86400) return Math.round(s / 3600) + " h ago";
+  if (s < 86400 * 30) return Math.round(s / 86400) + " days ago";
+  return new Date(ts * 1000).toLocaleDateString();
+}
+
+function browser(ua) {
+  ua = ua || "";
+  const dev = /iPhone/.test(ua) ? "iPhone" : /iPad/.test(ua) ? "iPad" : /Android/.test(ua) ? "Android"
+    : /Mac OS X/.test(ua) ? "Mac" : /Windows/.test(ua) ? "Windows" : /Linux/.test(ua) ? "Linux" : "Unknown device";
+  const app = /Reading\//.test(ua) || (/iPhone|iPad/.test(ua) && !/Safari\//.test(ua)) ? "Reading app"
+    : /Edg\//.test(ua) ? "Edge" : /Chrome\//.test(ua) ? "Chrome" : /Firefox\//.test(ua) ? "Firefox"
+    : /Safari\//.test(ua) ? "Safari" : /curl\//.test(ua) ? "curl" : "Browser";
+  return app + " on " + dev;
+}
+
+function msg(id, text, ok) { const el = $(id); el.textContent = text; el.className = "msg " + (ok ? "ok" : "err"); }
+
+async function loadMe() {
+  const me = await api("/api/me");
+  $("who").textContent = me.name;
+  $("role").textContent = me.is_admin ? "Admin" : "Reader";
+  $("admin").hidden = !me.is_admin;
+  $("must").hidden = !me.must_change_password;
+  $("rest").hidden = me.must_change_password;
+  $("back").hidden = me.must_change_password;
+  if (me.must_change_password) $("cur").focus();
+  return me;
+}
+
+async function loadDevices() {
+  const {devices} = await api("/api/account/devices");
+  const row = d => `<div class="row"><div><div class="t">${esc(d.label)}</div>
+      <div class="m">Added ${when(d.created_at)} · last used ${when(d.last_used_at)}</div></div>
+      <button class="danger" data-revoke="${d.id}" data-label="${esc(d.label)}">Revoke</button></div>`;
+  const sync = devices.filter(d => d.kind === "sync"), widgets = devices.filter(d => d.kind === "widget");
+  $("sync-list").innerHTML = sync.length ? sync.map(row).join("") : `<div class="empty">No e-readers yet.</div>`;
+  $("widget-list").innerHTML = widgets.length ? widgets.map(row).join("") : `<div class="empty">No phones yet.</div>`;
+}
+
+async function loadSessions() {
+  const {sessions} = await api("/api/account/sessions");
+  $("sessions").innerHTML = sessions.map(s => `<div class="row"><div>
+      <div class="t">${esc(browser(s.user_agent))}${s.current ? '<span class="badge">This one</span>' : ""}</div>
+      <div class="m">Signed in ${when(s.created_at)} · active ${when(s.last_seen_at)}${s.ip ? " · " + esc(s.ip) : ""}</div></div>
+      ${s.current ? "" : `<button class="danger" data-signout="${s.id}">Sign out</button>`}</div>`).join("");
+  $("others").hidden = sessions.length < 2;
+}
+
+$("pw").addEventListener("submit", async e => {
+  e.preventDefault();
+  if ($("new").value !== $("rep").value) return msg("pw-msg", "The new passwords don't match.");
+  try {
+    await api("/api/account/password", {current: $("cur").value, new: $("new").value});
+    $("pw").reset();
+    msg("pw-msg", "Password changed.", true);
+    const me = await loadMe();
+    if (!me.must_change_password) { loadDevices(); loadSessions(); }
+  } catch (err) { msg("pw-msg", err.message); }
+});
+
+$("new-dev").addEventListener("submit", async e => {
+  e.preventDefault();
+  try {
+    const {secret} = await api("/api/account/devices", {label: $("dev-label").value});
+    $("dev-label").value = "";
+    $("dev-secret").innerHTML = `<div class="secret"><div class="sub">Device password, shown only now:</div>
+      <code>${esc(secret)}</code><div class="sub">In KOReader's sync settings, use username <b>${esc($("who").textContent)}</b> and this password.</div></div>`;
+    loadDevices();
+  } catch (err) { $("dev-secret").innerHTML = `<div class="msg err">${esc(err.message)}</div>`; }
+});
+
+document.addEventListener("click", async e => {
+  const revoke = e.target.closest("[data-revoke]"), signout = e.target.closest("[data-signout]");
+  try {
+    if (revoke && confirm(`Revoke "${revoke.dataset.label}"? It stops syncing until you give it a new password.`)) {
+      await api("/api/account/devices/revoke", {id: +revoke.dataset.revoke});
+      loadDevices();
+    }
+    if (signout) { await api("/api/account/sessions/revoke", {id: +signout.dataset.signout}); loadSessions(); }
+  } catch (err) { alert(err.message); }
+});
+
+$("others").addEventListener("click", async () => {
+  await api("/api/account/sessions/revoke", {others: true});
+  loadSessions();
+});
+
+loadMe().then(me => { if (!me.must_change_password) { loadDevices(); loadSessions(); } });
+</script>
+</body>
+</html>

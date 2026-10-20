@@ -8,3 +8,8 @@ ios/Widget/Info.plist
 demo-data/
 .users/
 __pycache__/
+ios/App/*.entitlements
+ios/Widget/*.entitlements
+ios/App/*.entitlements
+ios/Widget/*.entitlements
+.cookies

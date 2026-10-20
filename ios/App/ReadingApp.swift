@@ -68,6 +68,9 @@ struct WebView: UIViewRepresentable {
 
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
             webView.scrollView.refreshControl?.endRefreshing()
+            // Signed in, out, or as someone else: give the widgets the matching token.
+            let store = webView.configuration.websiteDataStore.httpCookieStore
+            Task { @MainActor in await WidgetAccount.sync(from: store) }
         }
 
         func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {

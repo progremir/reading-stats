@@ -28,12 +28,33 @@ struct ReadingSnapshot: Codable, Sendable {
     )
 }
 
+/// The widget token the app got when someone signed in, shared with the widgets through the App Group.
+enum TokenStore {
+    // UserDefaults is thread-safe; it just isn't marked Sendable.
+    nonisolated(unsafe) private static let defaults = UserDefaults(
+        suiteName: Bundle.main.object(forInfoDictionaryKey: "ReadingAppGroup") as? String)
+
+    static var token: String? { defaults?.string(forKey: "widgetToken") }
+    static var account: String? { defaults?.string(forKey: "widgetAccount") }
+
+    static func save(token: String, account: String) {
+        defaults?.set(token, forKey: "widgetToken")
+        defaults?.set(account, forKey: "widgetAccount")
+    }
+
+    static func clear() {
+        defaults?.removeObject(forKey: "widgetToken")
+        defaults?.removeObject(forKey: "widgetAccount")
+    }
+}
+
 enum ReadingAPI {
     static let baseURL = URL(string: Secrets.serverURL)!
 
     static func fetch() async throws -> ReadingSnapshot {
+        guard let token = TokenStore.token else { throw URLError(.userAuthenticationRequired) }
         var request = URLRequest(url: baseURL.appending(path: "api/widget"))
-        request.setValue("Bearer \(Secrets.widgetToken)", forHTTPHeaderField: "Authorization")
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         request.cachePolicy = .reloadIgnoringLocalCacheData
         request.timeoutInterval = 20
         let (data, response) = try await URLSession.shared.data(for: request)
