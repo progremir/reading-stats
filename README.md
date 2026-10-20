@@ -24,8 +24,9 @@ for each reader.
   26-week calendar, what you're reading now, and a highlight of the day.
 - **Books**: covers (from Open Library), progress, time spent and days read per book.
 - **Highlights**: every highlight and note from KOReader, plus the stock Kindle reader's
-  `My Clippings.txt`, grouped by book and chapter or by month, searchable. One-word dictionary
-  lookups are kept apart as Words.
+  `My Clippings.txt`, grouped by book and chapter or by month, searchable by text, note, chapter,
+  book or author, and filtered by type, source, book and date. One-word dictionary lookups are
+  kept apart as Words. Export exactly what's shown as an Excel spreadsheet.
 - **iPhone**: an app that shows the site, and widgets for the Home Screen (today, current book,
   reading calendar) and the Lock Screen.
 - **No manual syncing**: highlights upload seconds after you make them, stats sync whenever Wi-Fi

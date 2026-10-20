@@ -35,6 +35,7 @@
   main {
     max-width: 680px; margin: 0 auto;
     padding: max(16px, env(safe-area-inset-top)) 16px calc(var(--nav-h) + env(safe-area-inset-bottom) + 24px);
+    overflow-wrap: anywhere; /* long titles, author lists and chapter names wrap instead of widening the page */
   }
   a { color: inherit; text-decoration: none; }
   h1 { font-size: 30px; font-weight: 700; letter-spacing: -.01em; margin: 8px 0 2px; }
@@ -89,6 +90,10 @@
   .now .info { flex: 1; min-width: 0; }
   .t { font-weight: 600; font-size: 16px; line-height: 1.3; }
   .a { color: var(--text-secondary); font-size: 14px; }
+  .clamp1, .clamp2, .clamp3 { overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; }
+  .clamp1 { -webkit-line-clamp: 1; }
+  .clamp2 { -webkit-line-clamp: 2; }
+  .clamp3 { -webkit-line-clamp: 3; }
   .bar { height: 6px; background: var(--surface-2); border-radius: 3px; margin-top: 8px; overflow: hidden; }
   .bar > div { height: 100%; background: var(--series-1); border-radius: 3px; }
   .row { display: flex; justify-content: space-between; gap: 10px; color: var(--text-secondary);
@@ -102,7 +107,9 @@
                justify-content: space-between; font-family: Georgia, "New York", serif; color: #f4efe6; }
   .cover .ph b { font-weight: 600; font-size: 11cqw; line-height: 1.2; overflow: hidden;
                  display: -webkit-box; -webkit-line-clamp: 6; -webkit-box-orient: vertical; }
-  .cover .ph span { font-size: 7.5cqw; opacity: .8; }
+  .cover .ph b { flex: 0 1 auto; min-height: 0; }
+  .cover .ph span { flex: none; font-size: 7.5cqw; opacity: .8; overflow: hidden;
+                    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
   .cover.small .ph span { display: none; }
 
   /* books */
@@ -115,11 +122,40 @@
           padding: 6px 0; }
   .detail-head { display: flex; gap: 16px; align-items: flex-end; margin-top: 8px; }
   .detail-head .cover { width: 112px; flex: none; }
+  .detail-head > div:last-child { flex: 1; min-width: 0; }
   .detail-head h1 { font-size: 22px; line-height: 1.25; margin: 0; }
+  .detail-head h1.long { font-size: 18px; }
   .facts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 18px; }
   .facts .tile .v { font-size: 22px; }
 
   /* highlights */
+  .title-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .export-btn { flex: none; background: var(--surface-2); color: var(--text-primary); border: 0; border-radius: 999px;
+                padding: 7px 16px; font: inherit; font-size: 14px; font-weight: 600; }
+  .export-btn:disabled { opacity: .4; }
+  .search-row { display: flex; gap: 8px; margin-top: 14px; }
+  .search-row .search { flex: 1; min-width: 0; }
+  .filter-btn { flex: none; display: inline-flex; align-items: center; gap: 6px; background: var(--surface-1);
+                color: var(--text-primary); border: 1px solid var(--grid); border-radius: 12px; padding: 0 14px;
+                font: inherit; font-size: 15px; }
+  .filter-btn svg { width: 18px; height: 18px; }
+  .badge { background: var(--series-1); color: #fff; border-radius: 999px; min-width: 20px; height: 20px; padding: 0 6px;
+           font-size: 12px; font-weight: 600; display: inline-grid; place-items: center; }
+  .chip.active { display: inline-flex; align-items: center; gap: 8px; max-width: 70vw; color: var(--text-primary); }
+  .chip.active i { font-style: normal; color: var(--text-muted); }
+  .sheet-bg { position: fixed; inset: 0; z-index: 20; background: #000a; }
+  .sheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: 21; max-width: 680px; margin: 0 auto;
+           max-height: 85vh; overflow-y: auto; background: var(--surface-1); border-radius: 18px 18px 0 0;
+           padding: 18px 16px calc(16px + env(safe-area-inset-bottom)); box-shadow: 0 -4px 24px #000a; }
+  .sheet-head { display: flex; align-items: center; justify-content: space-between; font-size: 18px; }
+  .sheet .link { background: none; border: 0; padding: 4px 0; color: var(--series-1); font: inherit; font-size: 15px; }
+  .sheet h3 { font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase;
+              color: var(--text-muted); margin: 18px 0 8px; }
+  .sheet .opts { display: flex; flex-wrap: wrap; gap: 8px; }
+  .select { width: 100%; background: var(--surface-2); color: var(--text-primary); border: 0; border-radius: 10px;
+            padding: 10px 12px; font: inherit; font-size: 16px; }
+  .done { width: 100%; margin-top: 22px; background: var(--text-primary); color: #000; border: 0; border-radius: 12px;
+          padding: 13px; font: inherit; font-size: 16px; font-weight: 600; }
   .search { width: 100%; background: var(--surface-1); color: var(--text-primary); border: 1px solid var(--grid);
             border-radius: 12px; padding: 11px 14px; font: inherit; font-size: 16px; }
   .chips { display: flex; gap: 8px; overflow-x: auto; margin: 10px -16px 4px; padding: 0 16px; scrollbar-width: none; }
@@ -150,6 +186,7 @@
   .quote q { display: block; quotes: none; font-family: Georgia, "New York", serif; font-size: 20px; line-height: 1.45; }
   .quote .src { display: flex; gap: 10px; align-items: center; margin-top: 14px; }
   .quote .src .cover { width: 30px; flex: none; }
+  .quote .src > div { min-width: 0; }
 </style>
 </head>
 <body>
@@ -162,7 +199,8 @@
 </nav>
 <script>
 let DATA = null;
-const state = { bookFilter: "all", hlFilter: "all", hlGroup: "book", hlQuery: "" };
+const state = { bookFilter: "all", hlType: "passages", hlSource: "all", hlBook: "all", hlDate: "any",
+                hlGroup: "book", hlQuery: "", filterOpen: false };
 
 const fmtDur = s => {
   const m = Math.round(s / 60);
@@ -301,34 +339,40 @@ function allHighlights() {
   return DATA.books.flatMap(b => b.highlights.map(h => ({...h, book: b})));
 }
 
-function hlHTML(h, {showBook = false, query = ""} = {}) {
-  const mark = t => {
-    const e = esc(t);
-    if (!query) return e;
-    const q = esc(query).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    return e.replace(new RegExp(q, "gi"), m => `<mark>${m}</mark>`);
-  };
+// A search matches when every word appears somewhere in the highlight, its note, chapter, book or author.
+const searchTerms = q => q.trim().toLowerCase().split(/\s+/).filter(Boolean);
+const hlMatches = (h, terms) => {
+  const hay = [h.text, h.note, h.chapter, h.book.title, h.book.authors].join("\n").toLowerCase();
+  return terms.every(t => hay.includes(t));
+};
+function mark(text, terms = []) {
+  if (!terms.length) return esc(text);
+  const re = new RegExp("(" + terms.map(t => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|") + ")", "gi");
+  return String(text ?? "").split(re).map((part, i) => i % 2 ? `<mark>${esc(part)}</mark>` : esc(part)).join("");
+}
+
+function hlHTML(h, {showBook = false, terms = []} = {}) {
   const meta = [
-    showBook ? `<a href="#/book/${h.book.id}">${esc(h.book.title)}</a>` : "",
-    !showBook && h.chapter ? "" : (h.chapter ? esc(h.chapter) : ""),
+    showBook ? `<a href="#/book/${h.book.id}">${mark(h.book.title, terms)}</a>` : "",
+    !showBook && h.chapter ? "" : (h.chapter ? mark(h.chapter, terms) : ""),
     h.page ? "p. " + h.page : (h.source === "kindle" && h.loc ? "loc. " + h.loc : ""),
     fmtDate(h.datetime),
   ].filter(Boolean).join(" · ");
-  return `<div class="hl"><q>${mark(h.text)}</q>
-    ${h.note ? `<div class="note">${mark(h.note)}</div>` : ""}
+  return `<div class="hl"><q>${mark(h.text, terms)}</q>
+    ${h.note ? `<div class="note">${mark(h.note, terms)}</div>` : ""}
     <div class="meta">${meta}</div></div>`;
 }
 
 // Highlights in reading order, split under chapter headings.
-function byChapterHTML(items, query) {
+function byChapterHTML(items, terms) {
   let out = "", last = null;
   for (const h of items) {
     const ch = h.chapter || (h.source === "kindle" ? "Kindle highlights" : "");
     if (ch !== last) {
-      if (ch) out += `<div class="chapter">${esc(ch)}</div>`;
+      if (ch) out += `<div class="chapter">${mark(ch, terms)}</div>`;
       last = ch;
     }
-    out += hlHTML(h, {query});
+    out += hlHTML(h, {terms});
   }
   return out;
 }
@@ -355,8 +399,8 @@ function viewHome() {
     <a class="card now" href="#/book/${reading.id}">
       ${cover(reading)}
       <div class="info">
-        <div class="t">${esc(reading.title)}</div>
-        <div class="a">${esc(reading.authors)}</div>
+        <div class="t clamp2">${esc(reading.title)}</div>
+        <div class="a clamp1">${esc(reading.authors)}</div>
         <div class="bar"><div style="width:${pct(reading.progress)}"></div></div>
         <div class="row"><span>${pct(reading.progress)}</span><span>${durText(reading.seconds)} · ${ago(reading.last_open)}</span></div>
       </div>
@@ -379,7 +423,7 @@ function viewHome() {
     <div class="quote"><q>${esc(pick.text)}</q>
       ${pick.note ? `<div class="note" style="margin-top:12px">${esc(pick.note)}</div>` : ""}
       <a class="src" href="#/book/${pick.book.id}">${cover(pick.book, "small")}
-        <div><div class="t" style="font-size:14px">${esc(pick.book.title)}</div><div class="sub">${fmtDate(pick.datetime)}</div></div></a>
+        <div><div class="t clamp2" style="font-size:14px">${esc(pick.book.title)}</div><div class="sub">${fmtDate(pick.datetime)}</div></div></a>
     </div>` : ""}`;
 }
 
@@ -431,7 +475,8 @@ function viewBook(id) {
   const passages = b.highlights.filter(h => !isWord(h)), words = b.highlights.filter(isWord);
   return `<a class="back" href="#/books">‹ Books</a>
     <div class="detail-head">${cover(b)}
-      <div><h1>${esc(b.title)}</h1><div class="a" style="margin-top:4px">${esc(b.authors)}</div></div></div>
+      <div><h1${b.title.length > 60 ? ' class="long"' : ""}>${esc(b.title)}</h1>
+        <div class="a clamp3" style="margin-top:4px" title="${esc(b.authors)}">${esc(b.authors)}</div></div></div>
     ${b.seconds ? `
     <div class="bar" style="margin-top:18px"><div style="width:${pct(b.progress)}"></div></div>
     <div class="row"><span>${b.finished ? "Finished" : pct(b.progress) + " read"}</span><span>${b.pages_read}/${b.pages || "?"} pages</span></div>
@@ -447,52 +492,123 @@ function viewBook(id) {
     ${words.length ? `<h2>Words · ${words.length}</h2><div class="group">${wordsHTML(words)}</div>` : ""}`;
 }
 
-const HL_FILTERS = {
-  all: ["Passages", h => !isWord(h)],
+const HL_TYPES = {
+  passages: ["Passages", h => !isWord(h)],
   words: ["Words", isWord],
   notes: ["With notes", h => !!h.note],
-  koreader: ["KOReader", h => h.source === "koreader"],
-  kindle: ["Kindle", h => h.source === "kindle"],
 };
+const HL_SOURCES = {all: "All", koreader: "KOReader", kindle: "Kindle"};
+const HL_DEFAULTS = {hlType: "passages", hlSource: "all", hlBook: "all", hlDate: "any"};
+
+function hlDates() {
+  const years = [...new Set(allHighlights().map(h => (h.datetime || "").slice(0, 4)).filter(Boolean))].sort().reverse();
+  return [["any", "Any time"], ["30d", "Last 30 days"], ...years.map(y => [y, y])];  // pairs: year keys would sort first in an object
+}
+
+function inDate(h, date) {
+  if (date === "any") return true;
+  if (!h.datetime) return false;
+  if (date === "30d") return Date.now() - new Date(h.datetime) < 30 * 86400000;
+  return h.datetime.startsWith(date);
+}
+
+// The highlights the filters and search let through, in the order they're shown.
+function filteredHighlights() {
+  const terms = searchTerms(state.hlQuery);
+  const items = allHighlights().filter(HL_TYPES[state.hlType][1])
+    .filter(h => state.hlSource === "all" || h.source === state.hlSource)
+    .filter(h => state.hlBook === "all" || h.book.id === state.hlBook)
+    .filter(h => inDate(h, state.hlDate))
+    .filter(h => hlMatches(h, terms));
+  if (state.hlType !== "words" && state.hlGroup === "month")
+    items.sort((a, b) => (b.datetime || "").localeCompare(a.datetime || ""));
+  return items;
+}
+
+// Filters that differ from the defaults, as [state key, label] for the removable chips.
+function activeFilters() {
+  const book = DATA.books.find(b => b.id === state.hlBook);
+  return [
+    state.hlType !== "passages" && ["hlType", HL_TYPES[state.hlType][0]],
+    state.hlSource !== "all" && ["hlSource", HL_SOURCES[state.hlSource]],
+    book && ["hlBook", book.title],
+    state.hlDate !== "any" && ["hlDate", (hlDates().find(([v]) => v === state.hlDate) || [, state.hlDate])[1]],
+  ].filter(Boolean);
+}
+
+function filterSheetHTML(count) {
+  const opts = (key, options) => `<div class="opts">${options.map(([v, label]) =>
+    `<button class="chip ${state[key] === v ? "on" : ""}" data-f="${key}" data-v="${esc(v)}">${esc(label)}</button>`).join("")}</div>`;
+  const books = DATA.books.filter(b => b.highlights.length).sort((a, b) => a.title.localeCompare(b.title));
+  return `<div class="sheet-bg" data-close></div>
+    <div class="sheet" role="dialog" aria-label="Filter highlights">
+      <div class="sheet-head"><b>Filter</b><button class="link" id="freset">Reset</button></div>
+      <h3>Type</h3>${opts("hlType", Object.entries(HL_TYPES).map(([k, [label]]) => [k, label]))}
+      <h3>Source</h3>${opts("hlSource", Object.entries(HL_SOURCES))}
+      <h3>Book</h3><select class="select" id="fbook"><option value="all">All books</option>${books.map(b =>
+        `<option value="${b.id}"${b.id === state.hlBook ? " selected" : ""}>${esc(b.title)}</option>`).join("")}</select>
+      <h3>Date</h3>${opts("hlDate", hlDates())}
+      ${state.hlType === "words" ? "" : `<h3>Group</h3>${opts("hlGroup", [["book", "By book"], ["month", "By month"]])}`}
+      <button class="done" data-close>Show ${count} ${count === 1 ? "highlight" : "highlights"}</button>
+    </div>`;
+}
 
 function viewHighlights() {
-  const q = state.hlQuery.trim().toLowerCase();
-  const [, test] = HL_FILTERS[state.hlFilter];
-  const items = allHighlights().filter(test)
-    .filter(h => !q || (h.text + " " + (h.note || "") + " " + h.book.title).toLowerCase().includes(q));
+  const terms = searchTerms(state.hlQuery), q = terms.length > 0;
+  const items = filteredHighlights(), active = activeFilters();
+  const byBook = () => {
+    const groups = new Map();
+    for (const h of items) (groups.get(h.book) || groups.set(h.book, []).get(h.book)).push(h);
+    return [...groups];
+  };
   let body = "";
-  if (state.hlFilter === "words") {
-    const groups = new Map();
-    for (const h of items) (groups.get(h.book) || groups.set(h.book, []).get(h.book)).push(h);
-    body = [...groups].map(([b, hs]) => `<h2>${esc(b.title)} · ${hs.length}</h2><div class="group">${wordsHTML(hs)}</div>`).join("");
+  if (state.hlType === "words") {
+    body = byBook().map(([b, hs]) => `<h2>${esc(b.title)} · ${hs.length}</h2><div class="group">${wordsHTML(hs)}</div>`).join("");
   } else if (state.hlGroup === "book") {
-    const groups = new Map();
-    for (const h of items) (groups.get(h.book) || groups.set(h.book, []).get(h.book)).push(h);
-    body = [...groups].map(([b, hs], i) => `
-      <details class="group"${i === 0 || q ? " open" : ""}>
-        <summary>${cover(b, "small")}<div class="info"><div class="t">${esc(b.title)}</div><div class="a">${esc(b.authors)}</div></div>
+    body = byBook().map(([b, hs], i) => `
+      <details class="group"${i === 0 || q || state.hlBook !== "all" ? " open" : ""}>
+        <summary>${cover(b, "small")}<div class="info"><div class="t clamp2">${mark(b.title, terms)}</div><div class="a clamp1">${mark(b.authors, terms)}</div></div>
           <span class="n">${hs.length}</span></summary>
-        ${byChapterHTML(hs, q)}
+        ${byChapterHTML(hs, terms)}
       </details>`).join("");
   } else {
-    const sorted = [...items].sort((a, b) => (b.datetime || "").localeCompare(a.datetime || ""));
     const groups = new Map();
-    for (const h of sorted) {
+    for (const h of items) {
       const key = h.datetime ? new Date(h.datetime).toLocaleDateString(undefined, {month: "long", year: "numeric"}) : "Undated";
       (groups.get(key) || groups.set(key, []).get(key)).push(h);
     }
     body = [...groups].map(([month, hs]) => `<h2>${esc(month)} · ${hs.length}</h2>
-      <div class="group">${hs.map(h => hlHTML(h, {showBook: true, query: q})).join("")}</div>`).join("");
+      <div class="group">${hs.map(h => hlHTML(h, {showBook: true, terms})).join("")}</div>`).join("");
   }
   const total = allHighlights(), nWords = total.filter(isWord).length;
-  return `<h1>Highlights</h1><div class="sub">${total.length - nWords} passages · ${nWords} words · ${DATA.books.filter(b => b.highlights.length).length} books</div>
-    <input class="search" id="hlq" type="search" placeholder="Search highlights" value="${esc(state.hlQuery)}" style="margin-top:14px">
-    <div class="chips" id="hlf">${Object.entries(HL_FILTERS).map(([k, [label]]) =>
-      `<button class="chip ${k === state.hlFilter ? "on" : ""}" data-k="${k}">${label}</button>`).join("")}</div>
-    <div class="seg" id="hlg" style="margin-top:8px">
-      <button data-g="book" class="${state.hlGroup === "book" ? "on" : ""}">By book</button>
-      <button data-g="month" class="${state.hlGroup === "month" ? "on" : ""}">By month</button></div>
-    <div id="hlbody">${body || `<div class="empty">No highlights match.</div>`}</div>`;
+  return `<div class="title-row"><h1>Highlights</h1>
+      <button class="export-btn" id="hlexport"${items.length ? "" : " disabled"}>Export</button></div>
+    <div class="sub">${total.length - nWords} passages · ${nWords} words · ${DATA.books.filter(b => b.highlights.length).length} books</div>
+    <div class="search-row">
+      <input class="search" id="hlq" type="search" placeholder="Search" value="${esc(state.hlQuery)}">
+      <button class="filter-btn" id="hlfilter" aria-label="Filter"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 6h16M7 12h10M10 18h4"/></svg>Filter${active.length ? `<span class="badge">${active.length}</span>` : ""}</button>
+    </div>
+    ${active.length ? `<div class="chips">${active.map(([key, label]) =>
+      `<button class="chip active" data-clear="${key}"><span class="clamp1">${esc(label)}</span><i>×</i></button>`).join("")}</div>` : ""}
+    <div id="hlbody" style="margin-top:14px">${body || `<div class="empty">No highlights match.</div>`}</div>
+    ${state.filterOpen ? filterSheetHTML(items.length) : ""}`;
+}
+
+// The export is what's on screen: post those highlights and the server turns them into a spreadsheet.
+function exportHighlights() {
+  const form = document.createElement("form");
+  form.method = "post";
+  form.action = "/api/highlights.xlsx";
+  const field = document.createElement("input");
+  field.type = "hidden";
+  field.name = "highlights";
+  field.value = JSON.stringify(filteredHighlights().map(h => ({
+    book: h.book.title, authors: h.book.authors, chapter: h.chapter, page: h.page, loc: h.loc,
+    text: h.text, note: h.note, datetime: h.datetime, source: h.source})));
+  form.appendChild(field);
+  document.body.appendChild(form);
+  form.submit();
+  form.remove();
 }
 
 function mountHighlights() {
@@ -505,9 +621,22 @@ function mountHighlights() {
     again.focus();
     again.setSelectionRange(pos, pos);
   });
-  document.querySelectorAll("#hlf .chip").forEach(c => c.addEventListener("click", () => { state.hlFilter = c.dataset.k; render(); }));
-  document.querySelectorAll("#hlg button").forEach(c => c.addEventListener("click", () => { state.hlGroup = c.dataset.g; render(); }));
+  const set = changes => { Object.assign(state, changes); render(); };
+  document.getElementById("hlexport").addEventListener("click", exportHighlights);
+  document.getElementById("hlfilter").addEventListener("click", () => set({filterOpen: true}));
+  document.querySelectorAll("[data-clear]").forEach(c => c.addEventListener("click", () =>
+    set({[c.dataset.clear]: HL_DEFAULTS[c.dataset.clear]})));
+  if (!state.filterOpen) return;
+  document.documentElement.style.overflow = "hidden";
+  document.querySelectorAll("[data-f]").forEach(c => c.addEventListener("click", () => set({[c.dataset.f]: c.dataset.v})));
+  document.getElementById("fbook").addEventListener("change", e => set({hlBook: e.target.value}));
+  document.getElementById("freset").addEventListener("click", () => set({...HL_DEFAULTS, hlGroup: "book"}));
+  document.querySelectorAll("[data-close]").forEach(c => c.addEventListener("click", () => set({filterOpen: false})));
 }
+
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape" && state.filterOpen) { state.filterOpen = false; render(); }
+});
 
 // ---------- router ----------
 
@@ -516,6 +645,7 @@ function render() {
   const route = location.hash.replace(/^#\/?/, "").split("/");
   let tab = "home";
   if (!DATA) return;
+  document.documentElement.style.overflow = "";
   if (route[0] === "books") { tab = "books"; view.innerHTML = viewBooks(); mountBooks(); }
   else if (route[0] === "book") { tab = "books"; view.innerHTML = viewBook(route[1]); }
   else if (route[0] === "highlights") { tab = "highlights"; view.innerHTML = viewHighlights(); mountHighlights(); }
@@ -525,6 +655,7 @@ function render() {
 
 let lastRoute = location.hash;
 window.addEventListener("hashchange", () => {
+  state.filterOpen = false;
   render();
   if (location.hash !== lastRoute) window.scrollTo(0, 0);
   lastRoute = location.hash;
