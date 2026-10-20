@@ -22,7 +22,8 @@ else you can do yourself. Stop and ask when a step says **Ask**.
 2. Is KOReader already installed? (On a Kindle that means it's already jailbroken.)
 3. Do they have a Railway account (and is the `railway` CLI logged in: `railway whoami`)?
 4. Do they want a custom domain? If so, where is its DNS (e.g. Cloudflare)?
-5. Do they want the iPhone widget? That needs a Mac with Xcode and an Apple Developer team ID.
+5. Do they want the iPhone widget? On `read.progremir.dev` that's just the TestFlight link in
+   step 5. Their own server needs a Mac with Xcode and an Apple Developer team ID.
 6. Their time zone (IANA name, e.g. `Europe/Berlin`), used for "today" and streaks. Readers on
    one server can have different ones.
 
@@ -189,7 +190,11 @@ Amazon DRM.
 
 ## 5. iPhone app and widgets (optional)
 
-Needs Xcode, `xcodegen` (`brew install xcodegen`) and the user's Apple Developer team ID. One
+**Readers on `read.progremir.dev`**: open https://testflight.apple.com/join/KPEdXnF8 on the
+iPhone, install TestFlight if asked, then install Reading Stats. Skip to "Each reader opens the
+app" below. The TestFlight build only talks to that server.
+
+**Any other server** builds its own app. Needs Xcode, `xcodegen` (`brew install xcodegen`) and the user's Apple Developer team ID. One
 build fits everyone on the server: the app signs in like the website, then asks the server for a
 widget token for that phone and shares it with its widgets through an App Group.
 
