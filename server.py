@@ -33,6 +33,7 @@ PORT = int(os.environ.get("PORT", "8080"))
 STATS_PATH = os.environ.get("STATS_PATH", "koreader/statistics.sqlite3")
 HIGHLIGHTS_PATH = os.environ.get("HIGHLIGHTS_PATH", "koreader/highlights")
 MAX_UPLOAD = 512 * 1024 * 1024
+MAX_EXPORT = 32 * 1024 * 1024
 SESSION_SECRET = (os.environ.get("SESSION_SECRET") or hashlib.sha256(("session:" + PASSWORD).encode()).hexdigest()).encode()
 SESSION_DAYS = 180
 COOKIE = "rs_session"
@@ -459,17 +460,34 @@ def excel_date(iso):
     return round((d.replace(tzinfo=None) - dt.datetime(1899, 12, 30)).total_seconds() / 86400, 6)
 
 
-def highlights_xlsx(user):
-    """Every highlight in the library as one worksheet: a row per highlight, books in library order."""
+def library_highlights(user):
+    """Every highlight in the library, books in library order, each carrying its book's title and authors."""
+    return [dict(h, book=b["title"], authors=b["authors"]) for b in compute_library(user)["books"] for h in b["highlights"]]
+
+
+def posted_highlights(body):
+    """The highlights the web page sends to export (what its filters and search show), as a JSON list in a form field."""
+    try:
+        items = json.loads(urllib.parse.parse_qs(body.decode(errors="replace")).get("highlights", ["[]"])[0])
+    except ValueError:
+        return None
+    if not isinstance(items, list) or not all(isinstance(h, dict) for h in items):
+        return None
+    keys = ("book", "authors", "chapter", "page", "loc", "text", "note", "datetime", "source")
+    return [{k: h[k] if isinstance(h.get(k), (int, float)) else str(h[k]) if h.get(k) is not None else None for k in keys}
+            for h in items]
+
+
+def highlights_xlsx(highlights):
+    """Highlights as one worksheet, a row per highlight in the order given."""
     cols = "ABCDEFGH"
     rows = ['<row r="1">%s</row>' % "".join(xlsx_cell("%s1" % c, name, 1) for c, (name, _) in zip(cols, XLSX_COLUMNS))]
-    for b in compute_library(user)["books"]:
-        for h in b["highlights"]:
-            n = len(rows) + 1
-            page = h.get("page") or ("loc. %s" % h["loc"] if h.get("loc") else None)
-            values = [(b["title"], 2), (b["authors"], 2), (h.get("chapter"), 2), (page, 4), (h["text"], 2),
-                      (h.get("note"), 2), (excel_date(h.get("datetime")), 3), ({"koreader": "KOReader", "kindle": "Kindle"}.get(h.get("source"), h.get("source")), 4)]
-            rows.append('<row r="%d">%s</row>' % (n, "".join(xlsx_cell("%s%d" % (c, n), v, st) for c, (v, st) in zip(cols, values))))
+    for h in highlights:
+        n = len(rows) + 1
+        page = h.get("page") or ("loc. %s" % h["loc"] if h.get("loc") else None)
+        values = [(h.get("book"), 2), (h.get("authors"), 2), (h.get("chapter"), 2), (page, 4), (h.get("text"), 2),
+                  (h.get("note"), 2), (excel_date(h.get("datetime")), 3), ({"koreader": "KOReader", "kindle": "Kindle"}.get(h.get("source"), h.get("source")), 4)]
+        rows.append('<row r="%d">%s</row>' % (n, "".join(xlsx_cell("%s%d" % (c, n), v, st) for c, (v, st) in zip(cols, values))))
     last = "H%d" % len(rows)
     sheet = ('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
              '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
@@ -653,8 +671,19 @@ class Handler(BaseHTTPRequestHandler):
             body = json.dumps(compute_highlights(user)).encode()
             return self.send(200, body, "application/json", {"Cache-Control": "no-store"})
         if path == "/api/highlights.xlsx":
+            # GET exports everything; the web page POSTs the highlights its filters show.
+            if self.command == "POST":
+                length = int(self.headers.get("Content-Length") or 0)
+                if length > MAX_EXPORT:
+                    self.drain()
+                    return self.send(413, b"too many highlights to export")
+                items = posted_highlights(self.rfile.read(length))
+                if items is None:
+                    return self.send(400, b"bad highlights")
+            else:
+                items = library_highlights(user)
             name = "highlights-%s.xlsx" % dt.datetime.now(user.tz).date().isoformat()
-            return self.send(200, highlights_xlsx(user), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            return self.send(200, highlights_xlsx(items), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                              {"Cache-Control": "no-store", "Content-Disposition": 'attachment; filename="%s"' % name})
         if path == "/api/widget":
             body = json.dumps(compute_widget(user)).encode()

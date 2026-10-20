@@ -24,8 +24,8 @@ the web and in iPhone widgets.
 - **Books**: covers (from Open Library), progress, time spent and days read per book.
 - **Highlights**: every highlight and note from KOReader, plus the stock Kindle reader's
   `My Clippings.txt`, grouped by book and chapter or by month, searchable by text, note, chapter,
-  book or author. One-word dictionary lookups are kept apart as Words. Export them all as one
-  Excel spreadsheet.
+  book or author, and filtered by type, source, book and date. One-word dictionary lookups are
+  kept apart as Words. Export exactly what's shown as an Excel spreadsheet.
 - **iPhone**: an app that shows the site, and widgets for the Home Screen (today, current book,
   reading calendar) and the Lock Screen.
 - **No manual syncing**: highlights upload seconds after you make them, stats sync whenever Wi-Fi
