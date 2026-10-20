@@ -2,6 +2,8 @@
 
 Follow this top to bottom to set up reading-stats for someone: their e-reader running KOReader
 syncs reading time and highlights to a server they own, viewable on the web and in iPhone widgets.
+One server can hold several readers (a couple, a family), each with their own account. Do step 2
+once per server, and steps 1, 3, 4 and 5 once per reader.
 
 You need the user for a few physical steps (plugging in the e-reader, tapping on it). Everything
 else you can do yourself. Stop and ask when a step says **Ask**.
@@ -10,14 +12,19 @@ else you can do yourself. Stop and ask when a step says **Ask**.
 
 **Ask** the user, and write down the answers:
 
-1. Which e-reader? Kindle, Kobo, PocketBook or Android/Boox. If it's a Kindle: the model and the
+0. Who will use it, and is there already a reading-stats server? One person, or several sharing
+   one server? If a server exists, get its URL and an admin's sign-in, and skip to "Adding a
+   reader" in step 2. If two people each already have a server and want one, see "Merging two
+   servers" after step 7. Pick a lowercase username for each extra reader (letters, digits, `_`).
+1. Which e-reader (for each reader)? Kindle, Kobo, PocketBook or Android/Boox. If it's a Kindle: the model and the
    exact firmware version (Settings → Device Options → Device Info), or plug it in and read
    `system/version.txt` from the drive; the serial number's first 6 characters identify the model.
 2. Is KOReader already installed? (On a Kindle that means it's already jailbroken.)
 3. Do they have a Railway account (and is the `railway` CLI logged in: `railway whoami`)?
 4. Do they want a custom domain? If so, where is its DNS (e.g. Cloudflare)?
 5. Do they want the iPhone widget? That needs a Mac with Xcode and an Apple Developer team ID.
-6. Their time zone (IANA name, e.g. `Europe/Berlin`), used for "today" and streaks.
+6. Their time zone (IANA name, e.g. `Europe/Berlin`), used for "today" and streaks. Readers on
+   one server can have different ones.
 
 Where the e-reader mounts: macOS `/Volumes/Kindle` (or `/Volumes/KOBOeReader`), Linux
 `/media/$USER/Kindle`. Paths below write `$DEVICE` for it.
@@ -47,39 +54,63 @@ device on USB (`ioreg -p IOUSB` / `lsusb`) but no drive appears, the user must e
 
 ## 2. Deploy the server
 
+Secrets live in git-ignored files at the repo root: `.password` is the first admin's account
+password, `.cookies` holds a signed-in session for the commands below, and `.users/` holds each
+reader's e-reader (device) password as `.users/<name>.device-password`. Account passwords are
+for signing in on the web; e-readers never get them.
+
 From the repo root:
 
 ```sh
 railway init --name reading-stats          # or link an existing project
 railway add --service web
 openssl rand -base64 18 | tr -d '/+=' | cut -c1-20 > .password      # git-ignored
-openssl rand -hex 24 > .widget-token                                # git-ignored
 railway variable set --service web --skip-deploys \
-  AUTH_USER=reader AUTH_PASSWORD="$(cat .password)" \
-  SESSION_SECRET="$(openssl rand -hex 32)" WIDGET_TOKEN="$(cat .widget-token)" \
-  TZ_NAME=<their IANA time zone> DATA_DIR=/data
-railway volume add -m /data                 # stats and highlights live here; without it a deploy wipes them
+  AUTH_USER=reader AUTH_PASSWORD="$(cat .password)" TZ_NAME=<their IANA time zone> DATA_DIR=/data
+railway volume add -m /data                 # accounts and reading data live here; without it a deploy wipes them
 railway up --detach
 railway domain                              # prints the *.up.railway.app URL
 ```
 
-Wait for the deployment to reach SUCCESS (`railway deployment list --json`), then verify with
-`$SERVER` set to the URL:
+The first start creates the admin account `reader` from `AUTH_PASSWORD` (it's read only while
+there are no accounts). Wait for the deployment to reach SUCCESS (`railway deployment list
+--json`), set `$SERVER` to the URL, then sign in and make the first reader's e-reader password:
 
 ```sh
-curl -s -o /dev/null -w "%{http_code}\n" $SERVER/healthz                                  # 200
-curl -s -o /dev/null -w "%{http_code}\n" -u "reader:$(cat .password)" -X PROPFIND $SERVER/dav/koreader/   # 207
+curl -s -o /dev/null -w "%{http_code}\n" $SERVER/healthz                    # 200
+curl -s -c .cookies -o /dev/null -w "%{redirect_url}\n" \
+  -d "username=reader&password=$(cat .password)" $SERVER/login             # $SERVER/ (not ?e=bad)
+mkdir -p .users
+curl -s -b .cookies -H 'Content-Type: application/json' -d '{"label":"Kindle"}' \
+  $SERVER/api/account/devices | python3 -c 'import json,sys; print(json.load(sys.stdin)["secret"])' \
+  > .users/reader.device-password
+curl -s -o /dev/null -w "%{http_code}\n" -u "reader:$(cat .users/reader.device-password)" \
+  -X PROPFIND $SERVER/dav/koreader/                                         # 207
 ```
 
 Optional, recommended: push the repo to a private GitHub repo and connect it as the service's
 source (Railway MCP `connect-service-source`, or the dashboard). Every push to `main` then deploys.
 
-### Adding a second reader to an existing server (optional)
+### Adding a reader
 
-If someone already has a server and wants to add a partner rather than deploy a second one,
-generate a password and widget token for the new person and add them with `USERS` (see the
-README). Their KOReader is configured with `--user <name>`, and their iPhone build uses their
-widget token. Merge new entries into any existing `USERS` value rather than replacing it.
+People are added by an admin, on the site (Account → Admin → Add a person) or with the same API.
+For `alice`, signed in as an admin (`.cookies` from above):
+
+```sh
+J='Content-Type: application/json'
+curl -s -b .cookies -H "$J" -d '{"name":"alice","tz":"<their IANA time zone>"}' $SERVER/api/admin/users
+# {"password": "..."}: her temporary password. Give it to her; she picks her own at first sign-in.
+ID=$(curl -s -b .cookies $SERVER/api/admin/users | python3 -c '
+import json, sys; print(next(u["id"] for u in json.load(sys.stdin)["users"] if u["name"] == "alice"))')
+curl -s -b .cookies -H "$J" -d "{\"id\":$ID,\"action\":\"new_device\",\"label\":\"Kindle\"}" \
+  $SERVER/api/admin/users/action | python3 -c 'import json,sys; print(json.load(sys.stdin)["secret"])' \
+  > .users/alice.device-password
+curl -s -o /dev/null -w "%{http_code}\n" -u "alice:$(cat .users/alice.device-password)" \
+  -X PROPFIND $SERVER/dav/koreader/                                         # 207
+```
+
+No redeploy is needed. A new account starts empty, with its data in `/data/users/alice/dav`.
+Temporary and device passwords are shown only once; if one is lost, reset it or make a new one.
 
 ### Custom domain (optional)
 
@@ -98,9 +129,16 @@ Use the final URL as `$SERVER` from here on.
 The user plugs the e-reader in with KOReader **closed**. Then:
 
 ```sh
-python3 scripts/configure_koreader.py --device $DEVICE --server $SERVER --password "$(cat .password)" \
+python3 scripts/configure_koreader.py --device $DEVICE --server $SERVER \
+  --user <name> --password "$(cat .users/<name>.device-password)" \
   [--home-dir /mnt/us/documents/Books] [--ssh-key ~/.ssh/id_ed25519.pub]
 ```
+
+Use the reader's **device password**, not their account password: it's stored on the e-reader,
+and it can be revoked on its own from the account page if the device is lost.
+
+Check you're configuring the right person's device before writing: on a Kindle, the serial
+(`ioreg -p IOUSB -l -w0 | grep '"USB Serial Number" = "G'`) tells two devices of the same model apart.
 
 It backs up the settings it changes, sets the stats sync server, installs the
 `highlightsync` plugin and adds a stats-sync-on-close profile. It refuses to write if the result
@@ -120,7 +158,7 @@ Eject the drive (`diskutil eject $DEVICE`), then have the user, with Wi-Fi on:
 Within a minute, check:
 
 ```sh
-curl -s -u "reader:$(cat .password)" $SERVER/api/library | python3 -m json.tool | head -40
+curl -s -u "<name>:$(cat .users/<name>.device-password)" $SERVER/api/library | python3 -m json.tool | head -40
 ```
 
 `stats` should be non-empty and the book should list the highlight. After this, highlights
@@ -138,15 +176,22 @@ Amazon DRM.
 
 - Put books in one folder (e.g. `$DEVICE/documents/Books`) and pass that folder as `--home-dir`.
 - Convert DRM-free `.azw3` to EPUB with KindleUnpack (https://github.com/kevinhendricks/KindleUnpack):
-  `python3 lib/kindleunpack.py -s book.azw3 outdir` and take `outdir/mobi8/*.epub`.
-  A MOBI file is DRM-protected if the 16-bit big-endian value at offset 12 of record 0 is nonzero;
-  `.kfx` files from Amazon purchases are DRM-protected. Leave those for the stock reader.
+  `python3 lib/kindleunpack.py -s book.azw3 outdir` and take `outdir/mobi8/*.epub`, or with
+  calibre's `ebook-convert book.azw3 book.epub`.
+  A MOBI file is DRM-protected if the 16-bit big-endian value at offset 12 of record 0 is nonzero.
+- Books sent with Send to Kindle land in `$DEVICE/documents/Downloads/Items01/`, often as `.kfx`.
+  Those personal documents are usually DRM-free (the file starts with `CONT`, and there is no
+  `DRMION` marker or voucher). Convert them with calibre plus jhowell's KFX Input plugin:
+  `ebook-convert book.kfx book.epub`. `.kfx` books bought from Amazon are DRM-protected; leave
+  those for the stock reader.
 - On FAT-formatted devices don't use `:` in file names (use ` - `), and delete macOS `._*` files.
 - Moving a book? Move its `<name>.sdr` folder with it, renamed to match; it holds the reading position.
 
-## 5. iPhone widget (optional)
+## 5. iPhone app and widgets (optional)
 
-Needs Xcode, `xcodegen` (`brew install xcodegen`) and the user's Apple Developer team ID.
+Needs Xcode, `xcodegen` (`brew install xcodegen`) and the user's Apple Developer team ID. One
+build fits everyone on the server: the app signs in like the website, then asks the server for a
+widget token for that phone and shares it with its widgets through an App Group.
 
 ```sh
 READING_SERVER=$SERVER ios/make-secrets.sh          # writes the git-ignored ios/Shared/Secrets.swift
@@ -154,13 +199,24 @@ cd ios
 DEVELOPMENT_TEAM=<team id> BUNDLE_ID_PREFIX=<reverse domain, e.g. com.example> xcodegen generate
 xcodebuild -project Reading.xcodeproj -scheme Reading -configuration Release \
   -destination 'id=<iPhone UDID from `xcrun devicectl list devices`>' \
-  -derivedDataPath build -allowProvisioningUpdates build
+  -derivedDataPath build -allowProvisioningUpdates -allowProvisioningDeviceRegistration build
 xcrun devicectl device install app --device <UDID> build/Build/Products/Release-iphoneos/Reading.app
 ```
 
-The app is the site in a web view (the user signs in once). Widgets: "Reading" (today, streak,
-week, current book; Home and Lock Screen) and "Reading calendar" (GitHub-style grid). They read
-`/api/widget` with the widget token and refresh about every 30 minutes.
+Install the same build on each reader's phone. Rerun `xcodegen generate` after adding Swift
+files. Automatic signing registers the App Group `group.<prefix>.reading` the first time.
+
+The phone must be in the team's device list and have Developer Mode on (Settings → Privacy &
+Security; it restarts). `-allowProvisioningDeviceRegistration` adds the phone to the developer
+account; tell the user that's happening, since it's their account. If the first build fails with
+"Build input file cannot be found: …mobileprovision", the new profile was still downloading:
+run the same command again.
+
+Each reader opens the app and signs in with their own username. Within a few seconds the phone
+appears under "iPhone widgets" on their account page and the widgets fill in. Signing out
+clears the widgets; signing in as someone else switches them. Widgets: "Reading" (today, streak,
+week, current book; Home and Lock Screen) and "Reading calendar" (GitHub-style grid). They
+refresh about every 30 minutes.
 
 ## 6. Extras the user may want (Kindle, jailbroken)
 
@@ -174,12 +230,38 @@ week, current book; Home and Lock Screen) and "Reading calendar" (GitHub-style g
 
 ## 7. Hand over
 
-Tell the user, without making them read this file:
+Tell the user, for each reader, without making them read this file:
 
-- the site URL, username `reader` and the password (in `.password`); it signs in for 180 days
+- the site URL, their username and password (`.password` for the first admin, the temporary
+  password for others, which they replace at first sign-in); it signs in for 180 days, and each
+  person sees only their own books
+- that the account page (Account tab) is where they change their password, see their devices and
+  sign out other sessions, and, for admins, where the admin page is
 - where to put books, and that highlights and stats sync on their own over Wi-Fi
 - that nothing needs a book to be closed
 - how to add the widgets (Home Screen → Edit → Add Widget → Reading)
+
+## Merging two servers into one
+
+When two people each have a server and want to share one, keep the server that has the most
+data and move the other person in as a new account:
+
+1. Add them with "Adding a reader" in step 2, and make them an e-reader password.
+2. Copy their files over WebDAV: from the old server's `/dav/koreader/` and
+   `/dav/koreader/highlights/`, GET each file (`statistics.sqlite3`, `highlights/*.json`,
+   `highlights/clippings.txt`) with the old login, and PUT it to the same path on the new server
+   with the new user's device password. Behind Cloudflare, give scripted requests a User-Agent:
+   its bot protection answers 403 to Python's default one.
+3. Compare `/api/library` on both: book count, highlight count and `stats.total` should match.
+4. With their e-reader plugged in, rerun step 3 with their username, device password and the new
+   `$SERVER`.
+5. Install the app (step 5) on their phone, or reinstall it if it was built for the old server;
+   they sign in with their new account.
+6. Only then delete the old Railway project. It holds the only other copy of their data, so
+   confirm with the user first.
+
+A server still on environment-variable accounts (`AUTH_PASSWORD`, `WIDGET_TOKEN`, `USERS`) needs
+nothing special: the first start of this version imports them (see the README).
 
 ## Known pitfalls
 
@@ -191,3 +273,9 @@ Tell the user, without making them read this file:
 | Stats sync error "file is not a database" once | First sync, nothing on the server yet | Harmless; next sync works |
 | Data gone after a deploy | No volume mounted at `/data` | `railway volume add -m /data` before relying on it |
 | Custom domain not resolving locally | Negative DNS cache | Wait, or flush: `sudo dscacheutil -flushcache; sudo killall -HUP mDNSResponder` |
+| Server exits with "No accounts yet" | First start without `AUTH_PASSWORD` | Set `AUTH_PASSWORD` and redeploy |
+| KOReader sync says unauthorized | It has the account password, or the device password was revoked | Make a device password and rerun step 3 with it |
+| Signed in, but only the account page shows | A temporary password: the user must choose their own first | Change it on the account page |
+| Widgets empty after installing the app | Not signed in to the app yet | Open the app and sign in |
+| API call answers "Cross-site request refused" | A POST without `Content-Type: application/json` | Send JSON with that header |
+| Scripted WebDAV requests get 403 | Cloudflare bot protection blocks Python's default User-Agent | Send a custom `User-Agent` header |

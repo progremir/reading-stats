@@ -4,13 +4,14 @@ KOReader (Reading statistics > Settings > Cloud sync) GETs and PUTs
 statistics.sqlite3 in a WebDAV folder. This serves that folder at /dav/
 and reads the same file to render the dashboard at /. The highlightsync
 KOReader plugin (koreader/) PUTs per-book highlights next to it.
+Accounts, sessions and device passwords live in auth.py; every request
+is served from the signed-in account's own folder.
 """
 
 import base64
 import datetime as dt
 import email.utils
 import hashlib
-import hmac
 import html
 import io
 import json
@@ -26,50 +27,26 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
+from auth import SESSION_DAYS as AUTH_SESSION_DAYS, Auth, AuthError
+
 ROOT = Path(os.environ.get("DATA_DIR", "/data"))
-PASSWORD = os.environ["AUTH_PASSWORD"]
 TZ = ZoneInfo(os.environ.get("TZ_NAME", "UTC"))
 PORT = int(os.environ.get("PORT", "8080"))
 STATS_PATH = os.environ.get("STATS_PATH", "koreader/statistics.sqlite3")
 HIGHLIGHTS_PATH = os.environ.get("HIGHLIGHTS_PATH", "koreader/highlights")
 MAX_UPLOAD = 512 * 1024 * 1024
 MAX_EXPORT = 32 * 1024 * 1024
-SESSION_SECRET = (os.environ.get("SESSION_SECRET") or hashlib.sha256(("session:" + PASSWORD).encode()).hexdigest()).encode()
-SESSION_DAYS = 180
 COOKIE = "rs_session"
 
-
-class User:
-    """One reader: their login, widget token, time zone and WebDAV folder."""
-
-    def __init__(self, name, password, widget_token, tz, dav):
-        if len(password) < 12:
-            raise SystemExit("password for %r must be at least 12 characters: the login is reachable from the internet" % name)
-        self.name, self.password, self.widget_token, self.tz, self.dav = name, password, widget_token, tz, dav
-        (dav / HIGHLIGHTS_PATH).mkdir(parents=True, exist_ok=True)
-
-
-def load_users():
-    """AUTH_USER/AUTH_PASSWORD is the first account, with data in DATA_DIR/dav as before.
-    USERS adds more as JSON: {"name": {"password": "...", "widget_token": "...", "tz": "Europe/Berlin"}},
-    each with data in DATA_DIR/users/<name>/dav."""
-    users = [User(os.environ.get("AUTH_USER", "reader"), PASSWORD, os.environ.get("WIDGET_TOKEN", ""), TZ, ROOT / "dav")]
-    for name, cfg in json.loads(os.environ.get("USERS") or "{}").items():
-        if not name.isidentifier() or any(u.name == name for u in users):
-            raise SystemExit("USERS: bad or duplicate user name %r" % name)
-        tz = ZoneInfo(cfg["tz"]) if cfg.get("tz") else TZ
-        users.append(User(name, cfg["password"], cfg.get("widget_token", ""), tz, ROOT / "users" / name / "dav"))
-    tokens = [u.widget_token for u in users if u.widget_token]
-    if len(tokens) != len(set(tokens)):
-        raise SystemExit("every user needs a different widget_token")
-    return users
-
-
-USERS = load_users()
-
-
-def find_user(name):
-    return next((u for u in USERS if u.name == name), None)
+ROOT.mkdir(parents=True, exist_ok=True)
+AUTH = Auth(ROOT, TZ)
+_imported = AUTH.import_from_env(os.environ)
+if _imported:
+    print("imported accounts from the environment: %s. They now live in %s; AUTH_PASSWORD, "
+          "WIDGET_TOKEN and USERS are no longer read." % (", ".join(_imported), AUTH.path), flush=True)
+if not AUTH.count_users():
+    raise SystemExit("No accounts yet. Set AUTH_PASSWORD (and optionally AUTH_USER) for the first start: "
+                     "it becomes the first admin account.")
 LOGIN_WINDOW, LOGIN_MAX_FAILS = 15 * 60, 10
 login_failures = {}  # ip -> [timestamps]
 recent_failures = []  # every failed attempt, all clients
@@ -96,35 +73,8 @@ COVERS_DIR = ROOT / "covers"  # shared: covers are public and keyed by title
 COVERS_DIR.mkdir(parents=True, exist_ok=True)
 INDEX_HTML = (Path(__file__).parent / "index.html").read_text()
 LOGIN_HTML = (Path(__file__).parent / "login.html").read_text()
-
-
-def make_session(user):
-    payload = base64.urlsafe_b64encode(json.dumps({"u": user, "exp": int(time.time()) + SESSION_DAYS * 86400}).encode()).decode()
-    sig = hmac.new(SESSION_SECRET, payload.encode(), hashlib.sha256).hexdigest()
-    return payload + "." + sig
-
-
-def check_session(token):
-    """The User a session cookie belongs to, or None."""
-    payload, _, sig = token.partition(".")
-    if not payload or not hmac.compare_digest(sig, hmac.new(SESSION_SECRET, payload.encode(), hashlib.sha256).hexdigest()):
-        return None
-    try:
-        data = json.loads(base64.urlsafe_b64decode(payload.encode()))
-    except ValueError:
-        return None
-    if data.get("exp", 0) <= time.time():
-        return None
-    return find_user(data.get("u"))
-
-
-def credentials_ok(name, pw):
-    """The User with these credentials, or None. Checks every account so timing doesn't reveal names."""
-    found = None
-    for u in USERS:
-        if hmac.compare_digest(name.encode(), u.name.encode()) & hmac.compare_digest(pw.encode(), u.password.encode()):
-            found = u
-    return found
+ACCOUNT_HTML = (Path(__file__).parent / "account.html").read_text()
+ADMIN_HTML = (Path(__file__).parent / "admin.html").read_text()
 
 
 def etag_of(path):
@@ -559,34 +509,30 @@ class Handler(BaseHTTPRequestHandler):
         if self.command != "HEAD":
             self.wfile.write(body)
 
+    def send_json(self, data, code=200):
+        return self.send(code, json.dumps(data).encode(), "application/json", {"Cache-Control": "no-store"})
+
+    def cookie_token(self):
+        for part in self.headers.get("Cookie", "").split(";"):
+            name, _, value = part.strip().partition("=")
+            if name == COOKIE and value:
+                return value
+        return None
+
     def basic_user(self):
+        """KOReader and scripts: username plus a device ("sync") password, never the account password."""
         header = self.headers.get("Authorization", "")
         if header.startswith("Basic "):
             try:
                 name, _, pw = base64.b64decode(header[6:]).decode().partition(":")
             except ValueError:
                 return None
-            return credentials_ok(name, pw)
-        return None
-
-    def session_user(self):
-        for part in self.headers.get("Cookie", "").split(";"):
-            name, _, value = part.strip().partition("=")
-            if name == COOKIE:
-                user = check_session(value)
-                if user:
-                    return user
+            return AUTH.device_user("sync", pw, name)
         return None
 
     def widget_user(self):
         header = self.headers.get("Authorization", "")
-        if not header.startswith("Bearer "):
-            return None
-        found = None
-        for u in USERS:
-            if u.widget_token and hmac.compare_digest(header[7:].encode(), u.widget_token.encode()):
-                found = u
-        return found
+        return AUTH.device_user("widget", header[7:]) if header.startswith("Bearer ") else None
 
     def secure_flag(self):
         # Plain http only when running locally; everywhere else the cookie is https-only.
@@ -597,20 +543,44 @@ class Handler(BaseHTTPRequestHandler):
         return (self.headers.get("CF-Connecting-IP") or self.headers.get("X-Forwarded-For", "").split(",")[0].strip()
                 or self.client_address[0])
 
+    def same_origin(self, json_only=True):
+        """State-changing API calls must be JSON from this site (or a native client), not a cross-site form.
+        The highlights export is a form post (so the browser saves the reply as a file) but changes nothing."""
+        if json_only and not (self.headers.get("Content-Type") or "").startswith("application/json"):
+            return False
+        site = self.headers.get("Sec-Fetch-Site")
+        if site and site not in ("same-origin", "none"):
+            return False
+        origin = self.headers.get("Origin")
+        return not origin or urllib.parse.urlsplit(origin).netloc == self.headers.get("Host")
+
+    def read_json(self):
+        length = int(self.headers.get("Content-Length") or 0)
+        if length > 65536:
+            raise AuthError("Request too large.")
+        try:
+            data = json.loads(self.rfile.read(length) or b"{}")
+        except ValueError:
+            raise AuthError("Bad JSON.")
+        if not isinstance(data, dict):
+            raise AuthError("Bad JSON.")
+        return data
+
     def handle_login(self):
         ip = self.client_ip()
         length = int(self.headers.get("Content-Length") or 0)
         form = urllib.parse.parse_qs(self.rfile.read(min(length, 4096)).decode(errors="replace"))
         if ip_locked(ip):
             return self.send(303, headers={"Location": "/login?e=locked"})
-        user = credentials_ok(form.get("username", [""])[0], form.get("password", [""])[0])
+        user = AUTH.login(form.get("username", [""])[0], form.get("password", [""])[0])
         if not user:
             note_failure(ip)
             return self.send(303, headers={"Location": "/login?e=bad"})
         login_failures.pop(ip, None)
+        token = AUTH.create_session(user, self.headers.get("User-Agent"), ip)
         cookie = "%s=%s; Path=/; Max-Age=%d; HttpOnly; SameSite=Lax%s" % (
-            COOKIE, make_session(user.name), SESSION_DAYS * 86400, self.secure_flag())
-        return self.send(303, headers={"Location": "/", "Set-Cookie": cookie})
+            COOKIE, token, AUTH_SESSION_DAYS * 86400, self.secure_flag())
+        return self.send(303, headers={"Location": "/account" if user.must_change_password else "/", "Set-Cookie": cookie})
 
     def drain(self):
         length = int(self.headers.get("Content-Length") or 0)
@@ -628,12 +598,14 @@ class Handler(BaseHTTPRequestHandler):
             return self.send(200, LOGIN_HTML.encode(), "text/html; charset=utf-8", {"Cache-Control": "no-store"})
         if path == "/logout":
             self.drain()
+            token = self.cookie_token()
+            if token:
+                AUTH.end_session(token)
             return self.send(303, headers={"Location": "/login",
                                            "Set-Cookie": "%s=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax%s" % (COOKIE, self.secure_flag())})
         widget_user = path == "/api/widget" and self.widget_user()
         if widget_user:
-            body = json.dumps(compute_widget(widget_user)).encode()
-            return self.send(200, body, "application/json", {"Cache-Control": "no-store"})
+            return self.send_json(compute_widget(widget_user))
         if path == "/dav" or path.startswith("/dav/"):
             ip = self.client_ip()
             if ip_locked(ip):
@@ -646,30 +618,52 @@ class Handler(BaseHTTPRequestHandler):
                 self.drain()
                 return self.send(401, b"auth required", headers={"WWW-Authenticate": 'Basic realm="reading"'})
             return self.handle_dav(path, user)
-        user = self.session_user() or self.basic_user()
+
+        user, session_id = AUTH.session_user(self.cookie_token())
         if not user:
-            if self.headers.get("Authorization", "").startswith("Basic "):
-                note_failure(self.client_ip())
+            user = self.basic_user()  # read-only API access with a device password, e.g. for scripts
+            if not user:
+                if self.headers.get("Authorization", "").startswith("Basic "):
+                    note_failure(self.client_ip())
+                self.drain()
+                if path in ("/", "/account", "/admin"):
+                    return self.send(303, headers={"Location": "/login"})
+                return self.send(401, b"login required")
+            if path.startswith("/api/account/") or path.startswith("/api/admin/") or path in ("/account", "/admin"):
+                self.drain()
+                return self.send(403, b"sign in on the web to manage the account")
+        try:
+            return self.route(path, user, session_id)
+        except AuthError as e:
+            return self.send_json({"error": str(e)}, 400)
+
+    def route(self, path, user, session_id):
+        method = self.command
+        if method == "POST" and not self.same_origin(json_only=path != "/api/highlights.xlsx"):
+            self.drain()
+            return self.send_json({"error": "Cross-site request refused."}, 403)
+        if path == "/account":
+            self.drain()
+            return self.send(200, ACCOUNT_HTML.encode(), "text/html; charset=utf-8", {"Cache-Control": "no-store"})
+        if path == "/api/me":
+            self.drain()
+            return self.send_json({"name": user.name, "is_admin": user.is_admin, "tz": user.tz_name,
+                                   "must_change_password": user.must_change_password})
+        if path.startswith("/api/account/"):
+            return self.route_account(path[len("/api/account/"):], user, session_id)
+        if user.must_change_password:
             self.drain()
             if path == "/":
-                return self.send(303, headers={"Location": "/login"})
-            return self.send(401, b"login required")
-        if path == "/":
-            return self.send(200, INDEX_HTML.encode(), "text/html; charset=utf-8")
-        if path == "/api/stats":
-            body = json.dumps(compute_stats(user)).encode()
-            return self.send(200, body, "application/json", {"Cache-Control": "no-store"})
-        if path == "/api/library":
-            body = json.dumps(compute_library(user)).encode()
-            return self.send(200, body, "application/json", {"Cache-Control": "no-store"})
-        if path.startswith("/cover/"):
-            data = cover_for(path[len("/cover/"):], user)
-            if not data:
-                return self.send(404, b"no cover")
-            return self.send(200, data, "image/jpeg", {"Cache-Control": "private, max-age=604800"})
-        if path == "/api/highlights":
-            body = json.dumps(compute_highlights(user)).encode()
-            return self.send(200, body, "application/json", {"Cache-Control": "no-store"})
+                return self.send(303, headers={"Location": "/account"})
+            return self.send_json({"error": "Choose a new password first."}, 403)
+        if path == "/admin" or path.startswith("/api/admin/"):
+            if not user.is_admin:
+                self.drain()
+                return self.send(303, headers={"Location": "/"}) if path == "/admin" else self.send_json({"error": "Admins only."}, 403)
+            if path == "/admin":
+                self.drain()
+                return self.send(200, ADMIN_HTML.encode(), "text/html; charset=utf-8", {"Cache-Control": "no-store"})
+            return self.route_admin(path[len("/api/admin/"):], user)
         if path == "/api/highlights.xlsx":
             # GET exports everything; the web page POSTs the highlights its filters show.
             if self.command == "POST":
@@ -685,11 +679,71 @@ class Handler(BaseHTTPRequestHandler):
             name = "highlights-%s.xlsx" % dt.datetime.now(user.tz).date().isoformat()
             return self.send(200, highlights_xlsx(items), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                              {"Cache-Control": "no-store", "Content-Disposition": 'attachment; filename="%s"' % name})
-        if path == "/api/widget":
-            body = json.dumps(compute_widget(user)).encode()
-            return self.send(200, body, "application/json", {"Cache-Control": "no-store"})
         self.drain()
-        self.send(404, b"not found")
+        if path == "/":
+            return self.send(200, INDEX_HTML.encode(), "text/html; charset=utf-8", {"Cache-Control": "no-store"})
+        if path == "/api/stats":
+            return self.send_json(compute_stats(user))
+        if path == "/api/library":
+            return self.send_json(compute_library(user))
+        if path.startswith("/cover/"):
+            data = cover_for(path[len("/cover/"):], user)
+            if not data:
+                return self.send(404, b"no cover")
+            return self.send(200, data, "image/jpeg", {"Cache-Control": "private, max-age=604800"})
+        if path == "/api/highlights":
+            return self.send_json(compute_highlights(user))
+        if path == "/api/widget":
+            return self.send_json(compute_widget(user))
+        return self.send(404, b"not found")
+
+    def route_account(self, sub, user, session_id):
+        method = self.command
+        if sub == "password" and method == "POST":
+            body = self.read_json()
+            AUTH.change_password(user, body.get("current", ""), body.get("new", ""), session_id)
+            return self.send_json({"ok": True})
+        if sub == "sessions" and method == "GET":
+            return self.send_json({"sessions": AUTH.list_sessions(user, session_id)})
+        if sub == "sessions/revoke" and method == "POST":
+            body = self.read_json()
+            if body.get("others"):
+                AUTH.revoke_sessions(user, all_except=session_id or -1)
+            else:
+                AUTH.revoke_sessions(user, session_id=int(body.get("id") or 0))
+            return self.send_json({"ok": True})
+        if sub == "devices" and method == "GET":
+            return self.send_json({"devices": AUTH.list_devices(user.id)})
+        if sub == "devices" and method == "POST":
+            body = self.read_json()
+            return self.send_json({"secret": AUTH.create_device(user.id, "sync", body.get("label"))})
+        if sub == "devices/revoke" and method == "POST":
+            body = self.read_json()
+            AUTH.revoke_device(user.id, int(body.get("id") or 0))
+            return self.send_json({"ok": True})
+        if sub == "widget-token" and method == "POST":
+            # The iPhone app calls this once signed in, and hands the token to its widgets.
+            body = self.read_json()
+            client_id = str(body.get("client_id") or "")[:100] or None
+            return self.send_json({"token": AUTH.create_device(user.id, "widget", body.get("label"), client_id),
+                                   "name": user.name})
+        self.drain()
+        return self.send_json({"error": "Not found."}, 404)
+
+    def route_admin(self, sub, user):
+        method = self.command
+        if sub == "users" and method == "GET":
+            self.drain()
+            return self.send_json({"users": AUTH.list_users(), "me": user.id})
+        if sub == "users" and method == "POST":
+            body = self.read_json()
+            password = AUTH.create_user(body.get("name"), body.get("tz"), bool(body.get("is_admin")))
+            return self.send_json({"password": password})
+        if sub == "users/action" and method == "POST":
+            body = self.read_json()
+            return self.send_json(AUTH.admin_action(user, int(body.get("id") or 0), body.get("action"), body))
+        self.drain()
+        return self.send_json({"error": "Not found."}, 404)
 
     def handle_dav(self, path, user):
         target = dav_path(path, user)
@@ -778,5 +832,5 @@ class Handler(BaseHTTPRequestHandler):
 
 
 if __name__ == "__main__":
-    print("listening on %d, data in %s, users: %s" % (PORT, ROOT, ", ".join(u.name for u in USERS)), flush=True)
+    print("listening on %d, data in %s, users: %s" % (PORT, ROOT, ", ".join(u["name"] for u in AUTH.list_users())), flush=True)
     ThreadingHTTPServer(("", PORT), Handler).serve_forever()

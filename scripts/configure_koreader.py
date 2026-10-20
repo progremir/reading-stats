@@ -13,7 +13,10 @@ Run it while the e-reader is mounted as a drive and KOReader is NOT running
 
 Usage:
   scripts/configure_koreader.py --device /Volumes/Kindle --server https://read.example.com \\
-      --password '...' [--user reader] [--home-dir /mnt/us/documents/Books] [--ssh-key ~/.ssh/id_ed25519.pub]
+      --user reader --password 'abcd-efgh-jkmn-pqrs' [--home-dir /mnt/us/documents/Books] [--ssh-key ~/.ssh/id_ed25519.pub]
+
+--password is an e-reader (device) password from the account page, not the account password:
+it is stored on the device in plain text.
 """
 
 import argparse
@@ -138,8 +141,8 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--device", required=True, help="mount point of the e-reader, e.g. /Volumes/Kindle")
     ap.add_argument("--server", required=True, help="reading-stats base URL, e.g. https://read.example.com")
-    ap.add_argument("--user", default="reader")
-    ap.add_argument("--password", required=True)
+    ap.add_argument("--user", default="reader", help="the reader's username on the server")
+    ap.add_argument("--password", required=True, help="an e-reader (device) password from the account page")
     ap.add_argument("--home-dir", help="folder KOReader opens to, as the device sees it (e.g. /mnt/us/documents/Books)")
     ap.add_argument("--ssh-key", help="public key to authorize for KOReader's SSH server (port 2222)")
     args = ap.parse_args()
