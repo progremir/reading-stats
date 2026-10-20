@@ -12,13 +12,16 @@ import email.utils
 import hashlib
 import hmac
 import html
+import io
 import json
 import os
+import re
 import sqlite3
 import tempfile
 import time
 import urllib.parse
 import urllib.request
+import zipfile
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -434,6 +437,94 @@ def compute_highlights(user):
     return {"count": sum(len(b["highlights"]) for b in books), "books": books}
 
 
+XLSX_COLUMNS = [("Book", 36), ("Authors", 24), ("Chapter", 24), ("Page", 8), ("Highlight", 80), ("Note", 40),
+                ("Date", 17), ("Source", 10)]
+
+
+def xlsx_cell(ref, value, style=0):
+    if value is None or value == "":
+        return ""
+    if isinstance(value, (int, float)):
+        return '<c r="%s" s="%d"><v>%s</v></c>' % (ref, style, value)
+    text = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f\ufffe\uffff]", "", str(value))[:32767]  # XML-safe, Excel's cell limit
+    return '<c r="%s" s="%d" t="inlineStr"><is><t xml:space="preserve">%s</t></is></c>' % (ref, style, html.escape(text, quote=False))
+
+
+def excel_date(iso):
+    """An ISO timestamp as an Excel date serial, so the column sorts and filters as dates."""
+    try:
+        d = dt.datetime.fromisoformat(iso)
+    except (TypeError, ValueError):
+        return iso
+    return round((d.replace(tzinfo=None) - dt.datetime(1899, 12, 30)).total_seconds() / 86400, 6)
+
+
+def highlights_xlsx(user):
+    """Every highlight in the library as one worksheet: a row per highlight, books in library order."""
+    cols = "ABCDEFGH"
+    rows = ['<row r="1">%s</row>' % "".join(xlsx_cell("%s1" % c, name, 1) for c, (name, _) in zip(cols, XLSX_COLUMNS))]
+    for b in compute_library(user)["books"]:
+        for h in b["highlights"]:
+            n = len(rows) + 1
+            page = h.get("page") or ("loc. %s" % h["loc"] if h.get("loc") else None)
+            values = [(b["title"], 2), (b["authors"], 2), (h.get("chapter"), 2), (page, 4), (h["text"], 2),
+                      (h.get("note"), 2), (excel_date(h.get("datetime")), 3), ({"koreader": "KOReader", "kindle": "Kindle"}.get(h.get("source"), h.get("source")), 4)]
+            rows.append('<row r="%d">%s</row>' % (n, "".join(xlsx_cell("%s%d" % (c, n), v, st) for c, (v, st) in zip(cols, values))))
+    last = "H%d" % len(rows)
+    sheet = ('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+             '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
+             '<sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>'
+             '<cols>%s</cols><sheetData>%s</sheetData><autoFilter ref="A1:%s"/></worksheet>'
+             % ("".join('<col min="%d" max="%d" width="%d" customWidth="1"/>' % (i, i, w) for i, (_, w) in enumerate(XLSX_COLUMNS, 1)),
+                "".join(rows), last))
+    styles = ('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+              '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
+              '<numFmts count="1"><numFmt numFmtId="164" formatCode="yyyy-mm-dd hh:mm"/></numFmts>'
+              '<fonts count="2"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font></fonts>'
+              '<fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills>'
+              '<borders count="1"><border/></borders>'
+              '<cellStyleXfs count="1"><xf/></cellStyleXfs>'
+              '<cellXfs count="5"><xf/>'
+              '<xf fontId="1" applyFont="1"/>'
+              '<xf applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf>'
+              '<xf numFmtId="164" applyNumberFormat="1" applyAlignment="1"><alignment vertical="top"/></xf>'
+              '<xf applyAlignment="1"><alignment vertical="top"/></xf></cellXfs>'
+              '<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>'
+              '</styleSheet>')
+    parts = {
+        "[Content_Types].xml": '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+            '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'
+            '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>'
+            '<Default Extension="xml" ContentType="application/xml"/>'
+            '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>'
+            '<Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>'
+            '<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>'
+            '</Types>',
+        "_rels/.rels": '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+            '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+            '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>'
+            '</Relationships>',
+        "xl/workbook.xml": '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+            '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" '
+            'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">'
+            '<sheets><sheet name="Highlights" sheetId="1" r:id="rId1"/></sheets>'
+            '<definedNames><definedName name="_xlnm._FilterDatabase" localSheetId="0" hidden="1">Highlights!$A$1:$%s$%s</definedName></definedNames>'
+            '</workbook>' % (last[0], last[1:]),
+        "xl/_rels/workbook.xml.rels": '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+            '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+            '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>'
+            '<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>'
+            '</Relationships>',
+        "xl/styles.xml": styles,
+        "xl/worksheets/sheet1.xml": sheet,
+    }
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
+        for name, xml in parts.items():
+            z.writestr(name, xml)
+    return buf.getvalue()
+
+
 class Handler(BaseHTTPRequestHandler):
     protocol_version = "HTTP/1.1"
 
@@ -561,6 +652,10 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/highlights":
             body = json.dumps(compute_highlights(user)).encode()
             return self.send(200, body, "application/json", {"Cache-Control": "no-store"})
+        if path == "/api/highlights.xlsx":
+            name = "highlights-%s.xlsx" % dt.datetime.now(user.tz).date().isoformat()
+            return self.send(200, highlights_xlsx(user), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                             {"Cache-Control": "no-store", "Content-Disposition": 'attachment; filename="%s"' % name})
         if path == "/api/widget":
             body = json.dumps(compute_widget(user)).encode()
             return self.send(200, body, "application/json", {"Cache-Control": "no-store"})
