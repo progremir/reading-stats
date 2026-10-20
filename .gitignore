@@ -1,6 +1,5 @@
 .password
 .widget-token
-ios/Shared/Secrets.swift
 ios/build/
 ios/*.xcodeproj/
 ios/App/Info.plist

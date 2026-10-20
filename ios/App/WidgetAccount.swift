@@ -11,12 +11,12 @@ enum WidgetAccount {
 
     private static var running = false
 
-    static func sync(from store: WKHTTPCookieStore) async {
+    static func sync(from store: WKHTTPCookieStore, server: URL) async {
         guard !running else { return }
         running = true
         defer { running = false }
 
-        let host = ReadingAPI.baseURL.host() ?? ""
+        let host = server.host() ?? ""
         let cookies = await store.allCookies().filter { cookie in
             let domain = cookie.domain.hasPrefix(".") ? String(cookie.domain.dropFirst()) : cookie.domain
             return host == domain || host.hasSuffix("." + domain)
@@ -26,7 +26,7 @@ enum WidgetAccount {
             return
         }
 
-        guard let (data, status) = await request("api/me", cookie: cookieHeader) else { return }
+        guard let (data, status) = await request(server, "api/me", cookie: cookieHeader) else { return }
         if status == 401 {
             forget()
             return
@@ -38,7 +38,7 @@ enum WidgetAccount {
             "label": UIDevice.current.name,
             "client_id": UIDevice.current.identifierForVendor?.uuidString ?? "",
         ]
-        guard let (issuedData, issuedStatus) = await request("api/account/widget-token", cookie: cookieHeader, body: body),
+        guard let (issuedData, issuedStatus) = await request(server, "api/account/widget-token", cookie: cookieHeader, body: body),
               issuedStatus == 200,
               let issued = try? JSONDecoder().decode(Issued.self, from: issuedData) else { return }
         TokenStore.save(token: issued.token, account: issued.name)
@@ -51,8 +51,8 @@ enum WidgetAccount {
         WidgetCenter.shared.reloadAllTimelines()
     }
 
-    private static func request(_ path: String, cookie: String, body: [String: String]? = nil) async -> (Data, Int)? {
-        var request = URLRequest(url: ReadingAPI.baseURL.appending(path: path))
+    private static func request(_ server: URL, _ path: String, cookie: String, body: [String: String]? = nil) async -> (Data, Int)? {
+        var request = URLRequest(url: server.appending(path: path))
         request.httpShouldHandleCookies = false
         request.setValue(cookie, forHTTPHeaderField: "Cookie")
         request.cachePolicy = .reloadIgnoringLocalCacheData

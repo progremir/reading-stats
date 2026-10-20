@@ -27,9 +27,8 @@ for each reader.
   `My Clippings.txt`, grouped by book and chapter or by month, searchable. One-word dictionary
   lookups are kept apart as Words.
 - **iPhone**: an app that shows the site, and widgets for the Home Screen (today, current book,
-  reading calendar) and the Lock Screen. Readers on `read.progremir.dev` can install it from
-  [TestFlight](https://testflight.apple.com/join/KPEdXnF8); other servers build their own (see
-  [INSTALL.md](INSTALL.md#5-iphone-app-and-widgets-optional)).
+  reading calendar) and the Lock Screen. Install it from
+  [TestFlight](https://testflight.apple.com/join/KPEdXnF8) and enter your server's address.
 - **No manual syncing**: highlights upload seconds after you make them, stats sync whenever Wi-Fi
   connects and every 30 minutes. Offline changes wait and go out later.
 - **Several readers**: each person has their own account and sees only their own books, stats and

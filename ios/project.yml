@@ -36,6 +36,8 @@ targets:
       path: App/Info.plist
       properties:
         ReadingAppGroup: group.${BUNDLE_ID_PREFIX}.reading
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true  # http:// servers on the home network
         CFBundleURLTypes:
           - CFBundleURLName: ${BUNDLE_ID_PREFIX}.reading
             CFBundleURLSchemes: [reading]
@@ -60,5 +62,7 @@ targets:
       path: Widget/Info.plist
       properties:
         ReadingAppGroup: group.${BUNDLE_ID_PREFIX}.reading
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true
         NSExtension:
           NSExtensionPointIdentifier: com.apple.widgetkit-extension
