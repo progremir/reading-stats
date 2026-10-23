@@ -3,7 +3,8 @@
 KOReader (Reading statistics > Settings > Cloud sync) GETs and PUTs
 statistics.sqlite3 in a WebDAV folder. This serves that folder at /dav/
 and reads the same file to render the dashboard at /. The highlightsync
-KOReader plugin (koreader/) PUTs per-book highlights next to it.
+KOReader plugin (koreader/) PUTs per-book highlights next to it, and downloads
+(then deletes) the books sent from the web, which wait in an inbox folder there.
 Accounts, sessions and device passwords live in auth.py; every request
 is served from the signed-in account's own folder.
 """
@@ -34,6 +35,10 @@ TZ = ZoneInfo(os.environ.get("TZ_NAME", "UTC"))
 PORT = int(os.environ.get("PORT", "8080"))
 STATS_PATH = os.environ.get("STATS_PATH", "koreader/statistics.sqlite3")
 HIGHLIGHTS_PATH = os.environ.get("HIGHLIGHTS_PATH", "koreader/highlights")
+INBOX_PATH = os.environ.get("INBOX_PATH", "koreader/inbox")
+# What KOReader opens; anything else sent to the inbox would just sit on the e-reader.
+BOOK_TYPES = {"epub", "kepub", "pdf", "djvu", "mobi", "azw", "prc", "fb2", "fbz", "cbz", "xps", "chm", "rtf", "doc", "docx",
+              "txt", "md", "html", "htm", "odt"}
 MAX_UPLOAD = 512 * 1024 * 1024
 MAX_EXPORT = 32 * 1024 * 1024
 COOKIE = "rs_session"
@@ -345,6 +350,33 @@ def parse_clippings(text):
     return list(books.values())
 
 
+def inbox_dir(user):
+    folder = user.dav / INBOX_PATH
+    folder.mkdir(parents=True, exist_ok=True)
+    return folder
+
+
+def inbox_name(raw):
+    """A safe file name for a book sent to the inbox, or None if KOReader can't open that kind of file."""
+    name = re.sub(r'[\x00-\x1f\x7f/\\:*?"<>|]', "", urllib.parse.unquote(raw)).strip().lstrip(".")
+    stem, dot, ext = name.rpartition(".")
+    stem = stem.strip()[:120].strip()
+    if not dot or not stem or ext.lower() not in BOOK_TYPES:
+        return None
+    return "%s.%s" % (stem, ext.lower())
+
+
+def list_inbox(user):
+    """Books waiting for the e-reader to download them, oldest first."""
+    books = []
+    for path in inbox_dir(user).iterdir():
+        if path.is_file() and not path.name.startswith("."):
+            st = path.stat()
+            books.append({"name": path.name, "size": st.st_size,
+                          "added": dt.datetime.fromtimestamp(st.st_mtime, user.tz).isoformat()})
+    return sorted(books, key=lambda b: b["added"])
+
+
 def compute_highlights(user):
     folder = user.dav / HIGHLIGHTS_PATH
     books = []
@@ -639,7 +671,8 @@ class Handler(BaseHTTPRequestHandler):
 
     def route(self, path, user, session_id):
         method = self.command
-        if method == "POST" and not self.same_origin(json_only=path != "/api/highlights.xlsx"):
+        if method in ("POST", "PUT", "DELETE") and not self.same_origin(
+                json_only=method == "POST" and path != "/api/highlights.xlsx"):
             self.drain()
             return self.send_json({"error": "Cross-site request refused."}, 403)
         if path == "/account":
@@ -679,6 +712,8 @@ class Handler(BaseHTTPRequestHandler):
             name = "highlights-%s.xlsx" % dt.datetime.now(user.tz).date().isoformat()
             return self.send(200, highlights_xlsx(items), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                              {"Cache-Control": "no-store", "Content-Disposition": 'attachment; filename="%s"' % name})
+        if path == "/api/inbox" or path.startswith("/api/inbox/"):
+            return self.route_inbox(path[len("/api/inbox"):].lstrip("/"), user)
         self.drain()
         if path == "/":
             return self.send(200, INDEX_HTML.encode(), "text/html; charset=utf-8", {"Cache-Control": "no-store"})
@@ -696,6 +731,59 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/widget":
             return self.send_json(compute_widget(user))
         return self.send(404, b"not found")
+
+    def route_inbox(self, raw, user):
+        """GET lists the books waiting for the e-reader, PUT /api/inbox/<file name> sends one, DELETE takes one back."""
+        method = self.command
+        if not raw:
+            self.drain()
+            if method == "GET":
+                return self.send_json({"books": list_inbox(user)})
+            return self.send_json({"error": "Not found."}, 404)
+        if method == "PUT":
+            name = inbox_name(raw)
+            length = int(self.headers.get("Content-Length") or -1)
+            if not name or length < 0 or length > MAX_UPLOAD:
+                self.drain()
+                error = ("KOReader can't open that kind of file." if not name else
+                         "That file is too large." if length > MAX_UPLOAD else "Missing Content-Length.")
+                return self.send_json({"error": error}, 400 if not name else 413 if length > MAX_UPLOAD else 411)
+            folder = inbox_dir(user)
+            stem, _, ext = name.rpartition(".")
+            target, n = folder / name, 1
+            while target.exists():  # never replace a book that is still waiting
+                n += 1
+                target = folder / ("%s (%d).%s" % (stem, n, ext))
+            if not self.receive(length, target):
+                return self.send_json({"error": "The upload was cut short."}, 400)
+            return self.send_json({"name": target.name}, 201)
+        if method == "DELETE":
+            self.drain()
+            wanted = urllib.parse.unquote(raw)
+            target = next((p for p in inbox_dir(user).iterdir() if p.name == wanted and p.is_file()), None)
+            if not target:
+                return self.send_json({"error": "Not in the inbox."}, 404)
+            target.unlink()
+            return self.send_json({"ok": True})
+        self.drain()
+        return self.send_json({"error": "Not found."}, 404)
+
+    def receive(self, length, target):
+        """Write the request body to target atomically; False if the client sent less than it said."""
+        fd, tmp = tempfile.mkstemp(prefix=".tmp", dir=target.parent)
+        with os.fdopen(fd, "wb") as f:
+            remaining = length
+            while remaining:
+                chunk = self.rfile.read(min(remaining, 1 << 16))
+                if not chunk:
+                    break
+                f.write(chunk)
+                remaining -= len(chunk)
+        if remaining:
+            os.unlink(tmp)
+            return False
+        os.replace(tmp, target)
+        return True
 
     def route_account(self, sub, user, session_id):
         method = self.command
@@ -791,19 +879,8 @@ class Handler(BaseHTTPRequestHandler):
                     self.rfile.read(length)
                     return self.send(412, b"etag mismatch")
             existed = target.exists()
-            fd, tmp = tempfile.mkstemp(prefix=".tmp", dir=target.parent)
-            with os.fdopen(fd, "wb") as f:
-                remaining = length
-                while remaining:
-                    chunk = self.rfile.read(min(remaining, 1 << 16))
-                    if not chunk:
-                        break
-                    f.write(chunk)
-                    remaining -= len(chunk)
-            if remaining:
-                os.unlink(tmp)
+            if not self.receive(length, target):
                 return self.send(400, b"short body")
-            os.replace(tmp, target)
             return self.send(204 if existed else 201, headers={"ETag": etag_of(target)})
 
         if method == "DELETE":

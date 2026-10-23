@@ -23,6 +23,9 @@ for each reader.
 - **Today**: time read today, this week, month and year, your streak, the last 30 days and a
   26-week calendar, what you're reading now, and a highlight of the day.
 - **Books**: covers (from Open Library), progress, time spent and days read per book.
+- **Send to e-reader**: upload books on the Books tab, from a computer or a phone, and they land in
+  an Inbox folder on the e-reader the next time it's online, like Send to Kindle. Delivered books
+  are deleted from the server.
 - **Highlights**: every highlight and note from KOReader, plus the stock Kindle reader's
   `My Clippings.txt`, grouped by book and chapter or by month, searchable by text, note, chapter,
   book or author, and filtered by type, source, book and date. One-word dictionary lookups are
@@ -41,6 +44,7 @@ e-reader (KOReader)                         your server (server.py)             
 ──────────────────                          ───────────────────────               ───
 Reading statistics ── statistics.sqlite3 ──▶ /dav/koreader/          ──▶ web app (/login, /)
 highlightsync plugin ── highlights/*.json ─▶   (WebDAV, Basic auth)  ──▶ /api/widget ──▶ iOS widgets
+Inbox folder ◀──────────── inbox/* ──────────                         ◀── Send to e-reader (web)
 ```
 
 Every request is tied to one account, and `/dav/` is that account's own folder:
@@ -57,7 +61,8 @@ Every request is tied to one account, and `/dav/` is that account's own folder:
 - `account.html`, `admin.html`: the account page (password, devices, sessions) and the admin page
   (people).
 - `koreader/highlightsync.koplugin`: a KOReader plugin that uploads highlights to the same
-  WebDAV server and keeps statistics syncing in the background.
+  WebDAV server, keeps statistics syncing in the background, and downloads the books sent from
+  the web.
 - `ios/`: a SwiftUI app and WidgetKit extension.
 
 There is no shared service: you run the server, and data stays on a volume you control. A
