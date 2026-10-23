@@ -187,6 +187,22 @@
   .quote .src { display: flex; gap: 10px; align-items: center; margin-top: 14px; }
   .quote .src .cover { width: 30px; flex: none; }
   .quote .src > div { min-width: 0; }
+
+  /* send to e-reader */
+  .sheet p { color: var(--text-secondary); font-size: 15px; margin: 8px 0 0; }
+  .drop { display: block; margin-top: 16px; border: 1.5px dashed var(--grid); border-radius: 14px; padding: 26px 14px;
+          text-align: center; color: var(--text-secondary); font-size: 15px; cursor: pointer; }
+  .drop b { display: block; color: var(--text-primary); font-size: 16px; margin-bottom: 2px; }
+  .drop.over { border-color: var(--series-1); background: #3987e514; }
+  .drop input { display: none; }
+  .file { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-top: 1px solid var(--grid); }
+  .file:first-child { border-top: 0; }
+  .file .info { flex: 1; min-width: 0; }
+  .file .t { font-size: 15px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .file .sub.err { color: #e5786d; }
+  .file .bar { height: 3px; margin-top: 6px; }
+  .file .x { flex: none; background: none; border: 0; color: var(--text-muted); font: inherit; font-size: 22px;
+             line-height: 1; padding: 4px 6px; }
 </style>
 </head>
 <body>
@@ -200,7 +216,7 @@
 <script>
 let DATA = null;
 const state = { bookFilter: "all", hlType: "passages", hlSource: "all", hlBook: "all", hlDate: "any",
-                hlGroup: "book", hlQuery: "", filterOpen: false };
+                hlGroup: "book", hlQuery: "", filterOpen: false, sendOpen: false };
 
 const fmtDur = s => {
   const m = Math.round(s / 60);
@@ -445,10 +461,80 @@ const BOOK_FILTERS = {
   highlighted: ["Highlighted", b => b.highlights.length > 0],
 };
 
+// Books sent from here wait on the server until the e-reader's plugin downloads them into its Inbox folder.
+const BOOK_TYPES = ["epub", "kepub", "pdf", "djvu", "mobi", "azw", "prc", "fb2", "fbz", "cbz", "xps", "chm", "rtf", "doc", "docx",
+                    "txt", "md", "html", "htm", "odt"];
+let INBOX = [];
+const uploads = [];  // {name, size, loaded, error, done}, newest last
+const fmtSize = n => n < 1e6 ? Math.max(1, Math.round(n / 1e3)) + " KB" : (n / 1e6).toFixed(n < 1e7 ? 1 : 0) + " MB";
+
+async function loadInbox() {
+  try {
+    const r = await fetch("/api/inbox", {cache: "no-store"});
+    if (r.ok) INBOX = (await r.json()).books;
+  } catch {}
+}
+
+function sendBook(file) {
+  const up = {name: file.name, size: file.size, loaded: 0};
+  uploads.push(up);
+  if (!BOOK_TYPES.includes(file.name.split(".").pop().toLowerCase())) {
+    up.error = "KOReader can't open this kind of file.";
+    return render();
+  }
+  const xhr = new XMLHttpRequest();
+  xhr.open("PUT", "/api/inbox/" + encodeURIComponent(file.name));
+  xhr.setRequestHeader("Content-Type", "application/octet-stream");
+  xhr.upload.onprogress = e => {
+    up.loaded = e.loaded;
+    const bar = document.querySelector(`[data-up="${uploads.indexOf(up)}"] .bar > div`);
+    if (bar) bar.style.width = pct(e.loaded / (e.total || 1));
+  };
+  xhr.onload = async () => {
+    if (xhr.status === 201) up.done = true;
+    else up.error = (() => { try { return JSON.parse(xhr.responseText).error; } catch { return ""; } })()
+      || (xhr.status === 413 ? "That file is too large." : "Upload failed (" + xhr.status + ").");
+    await loadInbox();
+    render();
+  };
+  xhr.onerror = () => { up.error = "Upload failed. Check your connection."; render(); };
+  xhr.send(file);
+  render();
+}
+
+async function unsend(name) {
+  await fetch("/api/inbox/" + encodeURIComponent(name), {method: "DELETE"});
+  await loadInbox();
+  render();
+}
+
+function sendSheetHTML() {
+  const sending = uploads.map((u, i) => [u, i]).filter(([u]) => !u.done);
+  return `<div class="sheet-bg" data-close></div>
+    <div class="sheet" role="dialog" aria-label="Send books to your e-reader">
+      <div class="sheet-head"><b>Send to e-reader</b><button class="link" data-close>Close</button></div>
+      <p>Books go to the <b>Inbox</b> folder on your e-reader the next time it's online.</p>
+      <label class="drop" id="drop"><b>Choose books</b>or drop them here · EPUB, PDF, MOBI, FB2, CBZ…
+        <input type="file" id="sendfile" multiple></label>
+      ${sending.length ? `<h3>Sending</h3><div>${sending.map(([u, i]) => `
+        <div class="file" data-up="${i}"><div class="info"><div class="t">${esc(u.name)}</div>
+          ${u.error ? `<div class="sub err">${esc(u.error)}</div>`
+            : `<div class="bar"><div style="width:${pct(u.loaded / (u.size || 1))}"></div></div>`}</div>
+          ${u.error ? `<button class="x" data-dismiss="${i}" aria-label="Dismiss">×</button>` : ""}</div>`).join("")}</div>` : ""}
+      <h3>Waiting for your e-reader${INBOX.length ? " · " + INBOX.length : ""}</h3>
+      ${INBOX.length ? `<div>${INBOX.map(b => `
+        <div class="file"><div class="info"><div class="t">${esc(b.name)}</div>
+          <div class="sub">${fmtSize(b.size)} · sent ${ago(b.added)}</div></div>
+          <button class="x" data-unsend="${esc(b.name)}" aria-label="Don't send">×</button></div>`).join("")}</div>`
+        : `<div class="sub">Nothing waiting. Books leave this list once your e-reader has them.</div>`}
+    </div>`;
+}
+
 function viewBooks() {
   const [, test] = BOOK_FILTERS[state.bookFilter];
   const books = DATA.books.filter(test);
-  return `<h1>Books</h1><div class="sub">${DATA.books.length} books</div>
+  return `<div class="title-row"><h1>Books</h1><button class="export-btn" id="send">Send to e-reader</button></div>
+    <div class="sub">${DATA.books.length} books${INBOX.length ? ` · <a href="#/books" id="waiting" style="color:var(--series-1)">${INBOX.length} waiting for your e-reader</a>` : ""}</div>
     <div class="chips" id="bookf">${Object.entries(BOOK_FILTERS).map(([k, [label, t]]) =>
       `<button class="chip ${k === state.bookFilter ? "on" : ""}" data-k="${k}">${label} ${DATA.books.filter(t).length}</button>`).join("")}</div>
     <div class="grid" style="margin-top:16px">${books.map(b => `
@@ -458,12 +544,32 @@ function viewBooks() {
         <div class="t">${esc(b.title)}</div>
         <div class="m">${[b.seconds ? (b.finished ? "Finished" : pct(b.progress)) : "", b.seconds ? durText(b.seconds) : "",
           (n => n ? n + (n === 1 ? " highlight" : " highlights") : "")(b.highlights.filter(h => !isWord(h)).length)].filter(Boolean).join(" · ")}</div>
-      </a>`).join("") || `<div class="empty">Nothing here yet.</div>`}</div>`;
+      </a>`).join("") || `<div class="empty">Nothing here yet.</div>`}</div>
+    ${state.sendOpen ? sendSheetHTML() : ""}`;
 }
 
 function mountBooks() {
   document.querySelectorAll("#bookf .chip").forEach(c => c.addEventListener("click", () => {
     state.bookFilter = c.dataset.k;
+    render();
+  }));
+  const open = e => { e.preventDefault(); state.sendOpen = true; render(); loadInbox().then(render); };
+  document.getElementById("send").addEventListener("click", open);
+  document.getElementById("waiting")?.addEventListener("click", open);
+  if (!state.sendOpen) return;
+  document.documentElement.style.overflow = "hidden";
+  const drop = document.getElementById("drop"), input = document.getElementById("sendfile");
+  input.addEventListener("change", () => [...input.files].forEach(sendBook));
+  drop.addEventListener("dragover", e => { e.preventDefault(); drop.classList.add("over"); });
+  drop.addEventListener("dragleave", () => drop.classList.remove("over"));
+  drop.addEventListener("drop", e => { e.preventDefault(); [...e.dataTransfer.files].forEach(sendBook); });
+  document.querySelectorAll("[data-unsend]").forEach(b => b.addEventListener("click", () => unsend(b.dataset.unsend)));
+  document.querySelectorAll("[data-dismiss]").forEach(b => b.addEventListener("click", () => {
+    uploads[+b.dataset.dismiss].done = true;
+    render();
+  }));
+  document.querySelectorAll("[data-close]").forEach(c => c.addEventListener("click", () => {
+    state.sendOpen = false;
     render();
   }));
 }
@@ -635,7 +741,7 @@ function mountHighlights() {
 }
 
 document.addEventListener("keydown", e => {
-  if (e.key === "Escape" && state.filterOpen) { state.filterOpen = false; render(); }
+  if (e.key === "Escape" && (state.filterOpen || state.sendOpen)) { state.filterOpen = state.sendOpen = false; render(); }
 });
 
 // ---------- router ----------
@@ -655,7 +761,7 @@ function render() {
 
 let lastRoute = location.hash;
 window.addEventListener("hashchange", () => {
-  state.filterOpen = false;
+  state.filterOpen = state.sendOpen = false;
   render();
   if (location.hash !== lastRoute) window.scrollTo(0, 0);
   lastRoute = location.hash;
@@ -666,6 +772,7 @@ async function load() {
     const r = await fetch("/api/library", {cache: "no-store"});
     if (r.status === 401) { location.href = "/login"; return; }
     DATA = await r.json();
+    await loadInbox();
     render();
   } catch {
     if (!DATA) document.getElementById("view").innerHTML = '<div class="empty">Could not load your reading data.</div>';

@@ -169,6 +169,14 @@ If highlights don't arrive: plug the device in (KOReader closed) and read
 `$DEVICE/koreader/crash.log`; the plugin logs every step as `HighlightSync: ...`. Queued uploads
 wait in `$DEVICE/koreader/settings/highlightsync_outbox/`.
 
+Books sent from the web (Books tab → Send to e-reader) wait in the account's `/dav/koreader/inbox/`
+until the plugin downloads them into an `Inbox` folder in KOReader's home folder, on Wi-Fi connect
+and every 30 minutes; Tools → "Get books sent from the web" fetches them right away. To test:
+
+```sh
+curl -s -u "<name>:$(cat .users/<name>.device-password)" -T book.epub "$SERVER/api/inbox/book.epub"
+```
+
 ## 4. Books (optional cleanup)
 
 KOReader opens EPUB, MOBI, AZW, PDF, FB2, CBZ and more, but **not `.azw3`** and nothing with
@@ -238,6 +246,7 @@ Tell the user, for each reader, without making them read this file:
 - that the account page (Account tab) is where they change their password, see their devices and
   sign out other sessions, and, for admins, where the admin page is
 - where to put books, and that highlights and stats sync on their own over Wi-Fi
+- that Books → Send to e-reader puts books in the e-reader's Inbox folder the next time it's online
 - that nothing needs a book to be closed
 - how to add the widgets (Home Screen → Edit → Add Widget → Reading)
 
