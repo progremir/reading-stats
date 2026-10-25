@@ -101,8 +101,7 @@ household can share one server, with an account per reader.
 
 Give [INSTALL.md](INSTALL.md) to a coding agent (or follow it yourself). It covers getting
 KOReader onto the device, deploying the server to Railway, adding people, configuring each device
-with `scripts/configure_koreader.py`, tidying books, building the iPhone app, and merging two
-existing servers into one.
+with `scripts/configure_koreader.py`, tidying books, and building the iPhone app.
 
 ## Run it locally
 
@@ -124,10 +123,9 @@ Admin.
 | `PORT` | Listen port, default `8080` |
 | `AUTH_PASSWORD` | First start only: becomes the first admin's password (12+ characters) |
 | `AUTH_USER` | First start only: the first admin's username, default `reader` |
-| `WIDGET_TOKEN`, `USERS` | First start only: imports accounts from older versions (see below) |
 
-The `AUTH_*`, `WIDGET_TOKEN` and `USERS` variables are read only while the accounts table is
-empty. After that, accounts live in `DATA_DIR/auth.sqlite3` and the variables can be removed.
+The `AUTH_*` variables are read only while the accounts table is empty. After that, accounts live
+in `DATA_DIR/auth.sqlite3` and the variables can be removed.
 
 ## Accounts
 
@@ -157,16 +155,6 @@ Where data lives:
 | Everyone else's reading data | `DATA_DIR/users/<name>/dav` |
 | Cover cache (shared) | `DATA_DIR/covers` |
 | Deleted accounts' data | `DATA_DIR/deleted/<name>-<time>` |
-
-### Upgrading from environment-variable accounts
-
-Older versions kept accounts in `AUTH_USER`/`AUTH_PASSWORD`/`WIDGET_TOKEN` and `USERS` (JSON:
-`{"name": {"password": "...", "widget_token": "...", "tz": "..."}}`). On the first start of this
-version they are imported: the `AUTH_USER` account becomes an admin, everyone keeps their
-password and data folder, each old password also becomes that account's e-reader device password,
-and each widget token becomes an iPhone device. Kindles and widgets set up before keep working.
-Web sign-ins are new, so everyone signs in once more. Then change your password on the account
-page, so the one your e-reader holds is no longer your account password.
 
 ## Security
 
