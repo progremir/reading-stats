@@ -30,14 +30,15 @@ Your e-reader syncs to a small server you own, and you see everything on the web
 widgets. One server can serve a whole household, with a separate account for each reader.
 
 <p align="center">
-  <img src="docs/screenshots/today.png" width="220" alt="Today: reading time, current book, streak and totals">
-  <img src="docs/screenshots/books.jpg" width="220" alt="Books: a cover grid with progress">
-  <img src="docs/screenshots/highlights.png" width="220" alt="Highlights: search, filters and grouping by book">
+  <img src="docs/screenshots/today.png" width="200" alt="Today: reading time, current book, streak and totals">
+  <img src="docs/screenshots/books.jpg" width="200" alt="Books: a cover grid with progress">
+  <img src="docs/screenshots/send.png" width="200" alt="Send to e-reader: choose books, watch them upload, and see the ones waiting for the e-reader">
+  <img src="docs/screenshots/highlights.png" width="200" alt="Highlights: search, filters and grouping by book">
 </p>
 <p align="center">
-  <img src="docs/screenshots/today-charts.png" width="220" alt="Last 30 days, a 26-week calendar and a highlight of the day">
-  <img src="docs/screenshots/book.png" width="220" alt="A book's page: progress, time, days read and highlights by chapter">
-  <img src="docs/screenshots/widgets.png" width="220" alt="iPhone widgets: today, current book and a GitHub-style reading calendar">
+  <img src="docs/screenshots/today-charts.png" width="200" alt="Last 30 days, a 26-week calendar and a highlight of the day">
+  <img src="docs/screenshots/book.png" width="200" alt="A book's page: progress, time, days read and highlights by chapter">
+  <img src="docs/screenshots/widgets.png" width="200" alt="iPhone widgets: today, current book and a GitHub-style reading calendar">
 </p>
 
 <p align="center"><sub>Screenshots use the demo library from <code>scripts/demo_data.py</code>.</sub></p>
