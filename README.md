@@ -1,22 +1,45 @@
-# reading-stats
+<p align="center">
+  <img src="docs/logo.svg" width="128" height="128" alt="Reading Stats logo: an open book under misty mountains and a red sun">
+</p>
 
-Your e-reader's reading time, streaks and highlights, on your phone. A self-hosted companion for
-[KOReader](https://koreader.rocks): the e-reader syncs to a small server you own, and you see it on
-the web and in iPhone widgets. One server can serve a whole household, with a separate account
-for each reader.
+<h1 align="center">reading-stats</h1>
 
-<p>
+<p align="center">
+  <b>Your e-reader's reading time, streaks and highlights, on your phone.</b><br>
+  A self-hosted companion for <a href="https://koreader.rocks">KOReader</a>, with a web app and iPhone widgets.
+</p>
+
+<p align="center">
+  <a href="https://koreader.rocks"><img src="https://img.shields.io/badge/KOReader-plugin-2b2925?style=flat-square" alt="KOReader plugin"></a>
+  <img src="https://img.shields.io/badge/Python-standard%20library%20only-3776ab?style=flat-square&logo=python&logoColor=white" alt="Python, standard library only">
+  <img src="https://img.shields.io/badge/iPhone-app%20%2B%20widgets-000000?style=flat-square&logo=apple&logoColor=white" alt="iPhone app and widgets">
+  <img src="https://img.shields.io/badge/self--hosted-your%20data-cd604c?style=flat-square" alt="Self-hosted">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-8f8e86?style=flat-square" alt="MIT license"></a>
+</p>
+
+<p align="center">
+  <a href="#what-it-does">Features</a> ·
+  <a href="#how-it-works">How it works</a> ·
+  <a href="INSTALL.md">Install</a> ·
+  <a href="#run-it-locally">Try it locally</a> ·
+  <a href="PRIVACY.md">Privacy</a>
+</p>
+
+Your e-reader syncs to a small server you own, and you see everything on the web and in iPhone
+widgets. One server can serve a whole household, with a separate account for each reader.
+
+<p align="center">
   <img src="docs/screenshots/today.png" width="220" alt="Today: reading time, current book, streak and totals">
   <img src="docs/screenshots/books.jpg" width="220" alt="Books: a cover grid with progress">
   <img src="docs/screenshots/highlights.png" width="220" alt="Highlights: search, filters and grouping by book">
 </p>
-<p>
+<p align="center">
   <img src="docs/screenshots/today-charts.png" width="220" alt="Last 30 days, a 26-week calendar and a highlight of the day">
   <img src="docs/screenshots/book.png" width="220" alt="A book's page: progress, time, days read and highlights by chapter">
   <img src="docs/screenshots/widgets.png" width="220" alt="iPhone widgets: today, current book and a GitHub-style reading calendar">
 </p>
 
-*Screenshots use the demo library from `scripts/demo_data.py`.*
+<p align="center"><sub>Screenshots use the demo library from <code>scripts/demo_data.py</code>.</sub></p>
 
 ## What it does
 
@@ -24,15 +47,18 @@ for each reader.
   26-week calendar, what you're reading now, and a highlight of the day.
 - **Books**: covers (from Open Library), progress, time spent and days read per book.
 - **Send to e-reader**: upload books on the Books tab, from a computer or a phone, and they land in
-  an Inbox folder on the e-reader the next time it's online, like Send to Kindle. Delivered books
-  are deleted from the server.
+  an Inbox folder on the e-reader the next time it's online, like Send to Kindle. Books waiting to
+  go out can be taken back; delivered ones are deleted from the server. On the e-reader, Tools →
+  *Get books sent from the web* fetches them right away.
 - **Highlights**: every highlight and note from KOReader, plus the stock Kindle reader's
   `My Clippings.txt`, grouped by book and chapter or by month, searchable by text, note, chapter,
-  book or author, and filtered by type, source, book and date. One-word dictionary lookups are
-  kept apart as Words. Export exactly what's shown as an Excel spreadsheet.
+  book or author (matches are marked), and narrowed with one Filter panel: type, source, book,
+  date and grouping, shown as removable chips. One-word dictionary lookups are kept apart as
+  Words. Export exactly what's shown, filters and search included, as an Excel spreadsheet.
 - **iPhone**: an app that shows the site, and widgets for the Home Screen (today, current book,
   reading calendar) and the Lock Screen. Install it from
   [TestFlight](https://testflight.apple.com/join/KPEdXnF8) and enter your server's address.
+  Exports open in the share sheet, to save to Files or send to another app.
 - **No manual syncing**: highlights upload seconds after you make them, stats sync whenever Wi-Fi
   connects and every 30 minutes. Offline changes wait and go out later.
 - **Several readers**: each person has their own account and sees only their own books, stats and
@@ -155,6 +181,13 @@ page, so the one your e-reader holds is no longer your account password.
 - Accounts can't see each other's data: WebDAV, the web app and widgets are scoped to the
   signed-in account, and WebDAV paths can't escape its folder.
 
+## Privacy
+
+The server and the iPhone app have no analytics, ads or tracking, and the app talks only to the
+server you point it at. The server looks up book covers on Open Library by title and author. See [PRIVACY.md](PRIVACY.md).
+
 ## License
 
 MIT, see [LICENSE](LICENSE).
+
+<p align="center"><sub>Made for people who read on e-ink and like to see their streaks.</sub></p>
