@@ -164,11 +164,12 @@ struct WebView: UIViewRepresentable {
         web.load(URLRequest(url: URL(string: route, relativeTo: server)!))
     }
 
-    final class Coordinator: NSObject, WKNavigationDelegate {
+    final class Coordinator: NSObject, WKNavigationDelegate, WKDownloadDelegate {
         let server: URL
         @Binding var onLoginPage: Bool
         weak var web: WKWebView?
         var lastRoute = ""
+        var downloadURL: URL?
 
         init(server: URL, onLoginPage: Binding<Bool>) {
             self.server = server
@@ -201,6 +202,33 @@ struct WebView: UIViewRepresentable {
                 return
             }
             decisionHandler(.allow)
+        }
+
+        // Files the site sends as attachments (the highlights export) download, then open the share sheet.
+        func webView(_ webView: WKWebView, decidePolicyFor response: WKNavigationResponse,
+                     decisionHandler: @escaping @MainActor (WKNavigationResponsePolicy) -> Void) {
+            let disposition = (response.response as? HTTPURLResponse)?.value(forHTTPHeaderField: "Content-Disposition")
+            decisionHandler(disposition?.hasPrefix("attachment") == true ? .download : .allow)
+        }
+
+        func webView(_ webView: WKWebView, navigationResponse: WKNavigationResponse, didBecome download: WKDownload) {
+            download.delegate = self
+        }
+
+        func download(_ download: WKDownload, decideDestinationUsing response: URLResponse,
+                      suggestedFilename: String) async -> URL? {
+            let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+            try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+            downloadURL = dir.appendingPathComponent(suggestedFilename)
+            return downloadURL
+        }
+
+        func downloadDidFinish(_ download: WKDownload) {
+            guard let url = downloadURL, let web, var top = web.window?.rootViewController else { return }
+            while let presented = top.presentedViewController { top = presented }
+            let share = UIActivityViewController(activityItems: [url], applicationActivities: nil)
+            share.popoverPresentationController?.sourceView = web
+            top.present(share, animated: true)
         }
     }
 }
