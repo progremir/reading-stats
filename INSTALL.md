@@ -22,7 +22,8 @@ else you can do yourself. Stop and ask when a step says **Ask**.
 2. Is KOReader already installed? (On a Kindle that means it's already jailbroken.)
 3. Do they have a Railway account (and is the `railway` CLI logged in: `railway whoami`)?
 4. Do they want a custom domain? If so, where is its DNS (e.g. Cloudflare)?
-5. Do they want the iPhone widget? That needs a Mac with Xcode and an Apple Developer team ID.
+5. Do they want the iPhone app and widgets? Each reader installs it from TestFlight (step 5);
+   nothing to build.
 6. Their time zone (IANA name, e.g. `Europe/Berlin`), used for "today" and streaks. Readers on
    one server can have different ones.
 
@@ -197,12 +198,16 @@ Amazon DRM.
 
 ## 5. iPhone app and widgets (optional)
 
-Needs Xcode, `xcodegen` (`brew install xcodegen`) and the user's Apple Developer team ID. One
-build fits everyone on the server: the app signs in like the website, then asks the server for a
-widget token for that phone and shares it with its widgets through an App Group.
+Each reader opens https://testflight.apple.com/join/KPEdXnF8 on their iPhone, installs TestFlight
+if asked, then installs Reading Stats. On first launch the app asks for the server address
+(`$SERVER`; `https://` is assumed, and a plain `http://` server on the home network works too),
+then shows the same sign-in as the website. It gets a widget token for that phone from the server
+and shares it with its widgets through an App Group.
+
+**Building it yourself instead** (to change the app, or not use TestFlight) needs Xcode,
+`xcodegen` (`brew install xcodegen`) and an Apple Developer team ID:
 
 ```sh
-READING_SERVER=$SERVER ios/make-secrets.sh          # writes the git-ignored ios/Shared/Secrets.swift
 cd ios
 DEVELOPMENT_TEAM=<team id> BUNDLE_ID_PREFIX=<reverse domain, e.g. com.example> xcodegen generate
 xcodebuild -project Reading.xcodeproj -scheme Reading -configuration Release \
@@ -211,7 +216,7 @@ xcodebuild -project Reading.xcodeproj -scheme Reading -configuration Release \
 xcrun devicectl device install app --device <UDID> build/Build/Products/Release-iphoneos/Reading.app
 ```
 
-Install the same build on each reader's phone. Rerun `xcodegen generate` after adding Swift
+The same build works for any server and reader. Rerun `xcodegen generate` after adding Swift
 files. Automatic signing registers the App Group `group.<prefix>.reading` the first time.
 
 The phone must be in the team's device list and have Developer Mode on (Settings → Privacy &
@@ -220,9 +225,10 @@ account; tell the user that's happening, since it's their account. If the first 
 "Build input file cannot be found: …mobileprovision", the new profile was still downloading:
 run the same command again.
 
-Each reader opens the app and signs in with their own username. Within a few seconds the phone
+Each reader enters the server address, then signs in with their own username. Within a few seconds the phone
 appears under "iPhone widgets" on their account page and the widgets fill in. Signing out
-clears the widgets; signing in as someone else switches them. Widgets: "Reading" (today, streak,
+clears the widgets; signing in as someone else switches them. "Change server" under the sign-in
+form goes back to the address screen. Widgets: "Reading" (today, streak,
 week, current book; Home and Lock Screen) and "Reading calendar" (GitHub-style grid). They
 refresh about every 30 minutes.
 

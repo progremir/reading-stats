@@ -31,7 +31,8 @@ for each reader.
   book or author, and filtered by type, source, book and date. One-word dictionary lookups are
   kept apart as Words. Export exactly what's shown as an Excel spreadsheet.
 - **iPhone**: an app that shows the site, and widgets for the Home Screen (today, current book,
-  reading calendar) and the Lock Screen.
+  reading calendar) and the Lock Screen. Install it from
+  [TestFlight](https://testflight.apple.com/join/KPEdXnF8) and enter your server's address.
 - **No manual syncing**: highlights upload seconds after you make them, stats sync whenever Wi-Fi
   connects and every 30 minutes. Offline changes wait and go out later.
 - **Several readers**: each person has their own account and sees only their own books, stats and

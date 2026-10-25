@@ -24,6 +24,7 @@ targets:
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
         INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
         INFOPLIST_KEY_UIUserInterfaceStyle: Dark
+        INFOPLIST_KEY_ITSAppUsesNonExemptEncryption: NO
         GENERATE_INFOPLIST_FILE: YES
         TARGETED_DEVICE_FAMILY: "1"
     entitlements:
@@ -35,6 +36,8 @@ targets:
       path: App/Info.plist
       properties:
         ReadingAppGroup: group.${BUNDLE_ID_PREFIX}.reading
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true  # http:// servers on the home network
         CFBundleURLTypes:
           - CFBundleURLName: ${BUNDLE_ID_PREFIX}.reading
             CFBundleURLSchemes: [reading]
@@ -59,5 +62,7 @@ targets:
       path: Widget/Info.plist
       properties:
         ReadingAppGroup: group.${BUNDLE_ID_PREFIX}.reading
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true
         NSExtension:
           NSExtensionPointIdentifier: com.apple.widgetkit-extension
