@@ -68,34 +68,36 @@ widgets. One server can serve a whole household, with a separate account for eac
 
 ## How it works
 
-```
-e-reader (KOReader)                         your server (server.py)               you
-──────────────────                          ───────────────────────               ───
-Reading statistics ── statistics.sqlite3 ──▶ /dav/koreader/          ──▶ web app (/login, /)
-highlightsync plugin ── highlights/*.json ─▶   (WebDAV, Basic auth)  ──▶ /api/widget ──▶ iOS widgets
-Inbox folder ◀──────────── inbox/* ──────────                         ◀── Send to e-reader (web)
-```
+<p align="center">
+  <img src="docs/how-it-works.svg" width="860" alt="The e-reader sends reading statistics and highlights to your server's WebDAV folder and picks up books from its inbox; the web browser, iPhone app and widgets read from the same server">
+</p>
 
-Every request is tied to one account, and `/dav/` is that account's own folder:
+1. **You read.** KOReader's built-in statistics sync uploads `statistics.sqlite3` whenever Wi-Fi
+   connects and every 30 minutes; the highlight sync plugin uploads each highlight seconds after
+   you make it. Offline changes wait and go out later.
+2. **Your server keeps it.** `server.py` is a WebDAV folder per account plus the web app and API,
+   all from the same files. Nothing else stores your data.
+3. **You look.** The web app, the iPhone app and the widgets all read from your server. Books you
+   send from the web wait in `inbox/` until the e-reader downloads them into its Inbox folder.
+
+Each part signs in its own way, so a lost e-reader never exposes your account password:
 
 | Who | Signs in with |
 |---|---|
-| Browser / iPhone app | username and account password, at `/login` (a session cookie) |
-| KOReader | username and a **device password** made on the account page; never the account password |
-| iPhone widgets | a widget token the app gets for its phone when you sign in to it |
+| 🌐 Browser / iPhone app | username and account password, at `/login` (a session cookie) |
+| 📖 KOReader | username and a **device password** made on the account page |
+| 📱 iPhone widgets | a widget token the app gets for its phone when you sign in to it |
 
-- `server.py`: standard library only. It is the WebDAV folder KOReader's built-in statistics
-  sync writes to, and it serves the web app and its API from the same data.
-- `auth.py`: accounts, sessions and device passwords, in `DATA_DIR/auth.sqlite3`.
-- `account.html`, `admin.html`: the account page (password, devices, sessions) and the admin page
-  (people).
-- `koreader/highlightsync.koplugin`: a KOReader plugin that uploads highlights to the same
-  WebDAV server, keeps statistics syncing in the background, and downloads the books sent from
-  the web.
-- `ios/`: a SwiftUI app and WidgetKit extension.
+What's in the repo:
 
-There is no shared service: you run the server, and data stays on a volume you control. A
-household can share one server, with an account per reader.
+| Path | What it is |
+|---|---|
+| [`server.py`](server.py) | the server: WebDAV, web app and API. Python standard library only |
+| [`auth.py`](auth.py) | accounts, sessions and device passwords, in `DATA_DIR/auth.sqlite3` |
+| [`index.html`](index.html), [`account.html`](account.html), [`admin.html`](admin.html) | the web app, the account page and the admin page |
+| [`koreader/highlightsync.koplugin`](koreader/highlightsync.koplugin) | the KOReader plugin: uploads highlights, keeps stats syncing, fetches books sent from the web |
+| [`ios/`](ios) | the SwiftUI iPhone app and its WidgetKit widgets |
+| [`scripts/`](scripts) | `configure_koreader.py` sets up an e-reader; `demo_data.py` makes the demo library |
 
 ## Install
 

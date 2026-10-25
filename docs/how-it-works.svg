@@ -1,0 +1,107 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 480" width="900" height="480" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+<style>
+  .card{fill:#fbf6ee;stroke:#ecdfca}
+  .band{fill:#20335f}
+  .h{fill:#fbe6c2;font-size:16px;font-weight:700}
+  .hs{fill:#b9c1dc;font-size:12px}
+  .row{fill:#ffffff;stroke:#eee2cf}
+  .folder{fill:none;stroke:#d08c4f;stroke-dasharray:4 4;stroke-width:1.5}
+  .fl{fill:#a0612c;font-size:11.5px;font-weight:600;letter-spacing:.3px}
+  .t{fill:#20335f;font-size:14px;font-weight:700}
+  .s{fill:#7d7466;font-size:12px}
+  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+  .ic{fill:none;stroke:#d08c4f;stroke-width:2.2}
+  .icfill{fill:#fbe6c2;opacity:.25}
+  .icline{stroke:#fbe6c2;stroke-width:2;stroke-linecap:round}
+  .icdot{fill:#d08c4f}
+  .arrow{stroke:#d08c4f;stroke-width:2.2;fill:none}
+  .head{fill:#d08c4f}
+  .al{fill:#20335f;font-size:12.5px;font-weight:700}
+  .as{fill:#7d7466;font-size:11.5px}
+  .foot{fill:#7d7466;font-size:13px}
+  .chip{fill:#fbe6c2;stroke:#ecd3a8}
+  .chipt{fill:#8a5527;font-size:12px;font-weight:600}
+  @media (prefers-color-scheme: dark){
+    .card{fill:#151a26;stroke:#283049}
+    .band{fill:#26396b}
+    .row{fill:#1c2232;stroke:#2c3450}
+    .t,.al{fill:#f3e4c8}
+    .s,.as,.foot{fill:#959cb0}
+    .fl{fill:#e0a56f}
+    .chip{fill:#2a2418;stroke:#4a3b22}
+    .chipt{fill:#e9b682}
+  }
+</style>
+<defs><marker id="a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head" d="M0 0L10 5L0 10z"/></marker></defs>
+<g transform="translate(10,16)">
+<rect class="card" width="200" height="410" rx="18"/>
+<path class="band" d="M0 18a18 18 0 0 1 18-18h164a18 18 0 0 1 18 18v52h-200z"/>
+<g transform="translate(16,17)"><rect class="ic" x="3" y="0" width="28" height="36" rx="5"/><rect class="icfill" x="7" y="4" width="20" height="24" rx="2"/><path class="icline" d="M10 10h14M10 15h14M10 20h9"/><circle class="icdot" cx="17" cy="32" r="1.6"/></g>
+<text class="h" x="62" y="38">Your e-reader</text>
+<text class="hs" x="62" y="56">KOReader</text>
+<rect class="row" x="12" y="108" width="176" height="64" rx="12"/>
+<text class="t" x="26" y="136">Reading statistics</text>
+<text class="s" x="26" y="155">built into KOReader</text>
+<rect class="row" x="12" y="196" width="176" height="64" rx="12"/>
+<text class="t" x="26" y="224">Highlight sync</text>
+<text class="s" x="26" y="243">plugin · highlights, notes</text>
+<rect class="row" x="12" y="284" width="176" height="64" rx="12"/>
+<text class="t" x="26" y="312">Inbox folder</text>
+<text class="s" x="26" y="331">books sent from the web</text>
+</g>
+<g transform="translate(350,16)">
+<rect class="card" width="200" height="410" rx="18"/>
+<path class="band" d="M0 18a18 18 0 0 1 18-18h164a18 18 0 0 1 18 18v52h-200z"/>
+<g transform="translate(16,17)"><rect class="ic" x="0" y="2" width="34" height="14" rx="4"/><rect class="ic" x="0" y="20" width="34" height="14" rx="4"/><circle class="icdot" cx="7" cy="9" r="2"/><circle class="icdot" cx="7" cy="27" r="2"/><path class="icline" d="M14 9h14M14 27h14"/></g>
+<text class="h" x="62" y="38">Your server</text>
+<text class="hs" x="62" y="56">server.py · you host it</text>
+<rect class="row" x="12" y="108" width="176" height="64" rx="12"/>
+<text class="t" x="26" y="136"><tspan class="mono">statistics.sqlite3</tspan></text>
+<text class="s" x="26" y="155">time read, pages, books</text>
+<rect class="row" x="12" y="196" width="176" height="64" rx="12"/>
+<text class="t" x="26" y="224"><tspan class="mono">highlights/</tspan></text>
+<text class="s" x="26" y="243">one file per book</text>
+<rect class="row" x="12" y="284" width="176" height="64" rx="12"/>
+<text class="t" x="26" y="312"><tspan class="mono">inbox/</tspan></text>
+<text class="s" x="26" y="331">books waiting to go out</text>
+</g>
+<rect class="folder" x="356" y="106" width="188" height="266" rx="14"/>
+<text class="fl" x="368" y="120">/dav/koreader/ · your folder</text>
+<rect class="chip" x="362" y="378" width="176" height="34" rx="10"/>
+<text class="chipt" x="450.0" y="400" text-anchor="middle">web app · API · accounts</text>
+<g transform="translate(690,16)">
+<rect class="card" width="200" height="410" rx="18"/>
+<path class="band" d="M0 18a18 18 0 0 1 18-18h164a18 18 0 0 1 18 18v52h-200z"/>
+<g transform="translate(16,17)"><rect class="ic" x="7" y="0" width="22" height="36" rx="5"/><rect class="icfill" x="10" y="5" width="16" height="24" rx="2"/><rect class="icdot" x="12" y="8" width="5" height="5" rx="1"/><rect class="icdot" x="19" y="8" width="5" height="5" rx="1"/><rect class="icdot" x="12" y="15" width="12" height="5" rx="1"/><circle class="icdot" cx="18" cy="32" r="1.4"/></g>
+<text class="h" x="62" y="38">You</text>
+<text class="hs" x="62" y="56">web · iPhone · widgets</text>
+<rect class="row" x="12" y="108" width="176" height="64" rx="12"/>
+<text class="t" x="26" y="136">Web browser</text>
+<text class="s" x="26" y="155">stats, books, highlights</text>
+<rect class="row" x="12" y="196" width="176" height="64" rx="12"/>
+<text class="t" x="26" y="224">iPhone app</text>
+<text class="s" x="26" y="243">the same site, signed in</text>
+<rect class="row" x="12" y="284" width="176" height="64" rx="12"/>
+<text class="t" x="26" y="312">Widgets</text>
+<text class="s" x="26" y="331">Home &amp; Lock Screen</text>
+</g>
+<path class="arrow" d="M216 156.0H344" marker-end="url(#a)"/>
+<text class="al" x="280.0" y="147.0" text-anchor="middle">stats</text>
+<text class="as" x="280.0" y="175.0" text-anchor="middle">on Wi-Fi, every 30 min</text>
+<path class="arrow" d="M216 244.0H344" marker-end="url(#a)"/>
+<text class="al" x="280.0" y="235.0" text-anchor="middle">highlights</text>
+<text class="as" x="280.0" y="263.0" text-anchor="middle">within seconds</text>
+<path class="arrow" d="M344 332.0H216" marker-end="url(#a)"/>
+<text class="al" x="280.0" y="323.0" text-anchor="middle">books</text>
+<text class="as" x="280.0" y="351.0" text-anchor="middle">next time it's online</text>
+<path class="arrow" d="M556 156.0H684" marker-start="url(#a)" marker-end="url(#a)"/>
+<text class="al" x="620.0" y="147.0" text-anchor="middle">view</text>
+<text class="as" x="620.0" y="175.0" text-anchor="middle">and send books back</text>
+<path class="arrow" d="M556 244.0H684" marker-start="url(#a)" marker-end="url(#a)"/>
+<text class="al" x="620.0" y="235.0" text-anchor="middle">view</text>
+<text class="as" x="620.0" y="263.0" text-anchor="middle">in the app</text>
+<path class="arrow" d="M556 332.0H684" marker-end="url(#a)"/>
+<text class="al" x="620.0" y="323.0" text-anchor="middle">widget API</text>
+<text class="as" x="620.0" y="351.0" text-anchor="middle">a token per phone</text>
+<text class="foot" x="450.0" y="466" text-anchor="middle">Each reader has an account and a folder of their own. You run the server, so the data stays on your volume.</text>
+</svg>
