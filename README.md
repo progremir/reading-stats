@@ -22,6 +22,7 @@
   <a href="#how-it-works">How it works</a> ·
   <a href="INSTALL.md">Install</a> ·
   <a href="#run-it-locally">Try it locally</a> ·
+  <a href="https://testflight.apple.com/join/KPEdXnF8">iPhone app</a> ·
   <a href="PRIVACY.md">Privacy</a>
 </p>
 
