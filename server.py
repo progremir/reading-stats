@@ -45,13 +45,16 @@ COOKIE = "rs_session"
 
 ROOT.mkdir(parents=True, exist_ok=True)
 AUTH = Auth(ROOT, TZ)
-_imported = AUTH.import_from_env(os.environ)
-if _imported:
-    print("imported accounts from the environment: %s. They now live in %s; AUTH_PASSWORD, "
-          "WIDGET_TOKEN and USERS are no longer read." % (", ".join(_imported), AUTH.path), flush=True)
 if not AUTH.count_users():
-    raise SystemExit("No accounts yet. Set AUTH_PASSWORD (and optionally AUTH_USER) for the first start: "
-                     "it becomes the first admin account.")
+    if not os.environ.get("AUTH_PASSWORD"):
+        raise SystemExit("No accounts yet. Set AUTH_PASSWORD (and optionally AUTH_USER) for the first start: "
+                         "it becomes the first admin account.")
+    try:
+        AUTH.create_first_admin(os.environ.get("AUTH_USER", "reader"), os.environ["AUTH_PASSWORD"])
+    except AuthError as e:
+        raise SystemExit("Can't create the first admin: %s" % e)
+    print("created the admin account from AUTH_USER/AUTH_PASSWORD; it now lives in %s and the variables "
+          "are no longer read." % AUTH.path, flush=True)
 LOGIN_WINDOW, LOGIN_MAX_FAILS = 15 * 60, 10
 login_failures = {}  # ip -> [timestamps]
 recent_failures = []  # every failed attempt, all clients

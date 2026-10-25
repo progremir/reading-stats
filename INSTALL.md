@@ -14,8 +14,7 @@ else you can do yourself. Stop and ask when a step says **Ask**.
 
 0. Who will use it, and is there already a reading-stats server? One person, or several sharing
    one server? If a server exists, get its URL and an admin's sign-in, and skip to "Adding a
-   reader" in step 2. If two people each already have a server and want one, see "Merging two
-   servers" after step 7. Pick a lowercase username for each extra reader (letters, digits, `_`).
+   reader" in step 2. Pick a lowercase username for each extra reader (letters, digits, `_`).
 1. Which e-reader (for each reader)? Kindle, Kobo, PocketBook or Android/Boox. If it's a Kindle: the model and the
    exact firmware version (Settings → Device Options → Device Info), or plug it in and read
    `system/version.txt` from the drive; the serial number's first 6 characters identify the model.
@@ -255,28 +254,6 @@ Tell the user, for each reader, without making them read this file:
 - that Books → Send to e-reader puts books in the e-reader's Inbox folder the next time it's online
 - that nothing needs a book to be closed
 - how to add the widgets (Home Screen → Edit → Add Widget → Reading)
-
-## Merging two servers into one
-
-When two people each have a server and want to share one, keep the server that has the most
-data and move the other person in as a new account:
-
-1. Add them with "Adding a reader" in step 2, and make them an e-reader password.
-2. Copy their files over WebDAV: from the old server's `/dav/koreader/` and
-   `/dav/koreader/highlights/`, GET each file (`statistics.sqlite3`, `highlights/*.json`,
-   `highlights/clippings.txt`) with the old login, and PUT it to the same path on the new server
-   with the new user's device password. Behind Cloudflare, give scripted requests a User-Agent:
-   its bot protection answers 403 to Python's default one.
-3. Compare `/api/library` on both: book count, highlight count and `stats.total` should match.
-4. With their e-reader plugged in, rerun step 3 with their username, device password and the new
-   `$SERVER`.
-5. Install the app (step 5) on their phone, or reinstall it if it was built for the old server;
-   they sign in with their new account.
-6. Only then delete the old Railway project. It holds the only other copy of their data, so
-   confirm with the user first.
-
-A server still on environment-variable accounts (`AUTH_PASSWORD`, `WIDGET_TOKEN`, `USERS`) needs
-nothing special: the first start of this version imports them (see the README).
 
 ## Known pitfalls
 

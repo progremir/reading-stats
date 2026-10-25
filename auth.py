@@ -11,7 +11,6 @@ keeps per-request checks cheap. Only the human-chosen account password gets the 
 
 import hashlib
 import hmac
-import json
 import os
 import re
 import secrets
@@ -143,33 +142,15 @@ class Auth:
         with self.db() as con:
             return con.execute("SELECT COUNT(*) FROM users").fetchone()[0]
 
-    def import_from_env(self, env):
-        """First start only: turn AUTH_USER/AUTH_PASSWORD/WIDGET_TOKEN and USERS into rows.
-        Each imported password also becomes that account's KOReader device password, and each
-        widget token an iPhone device, so devices set up before the table existed keep working."""
-        if self.count_users():
-            return []
-        accounts = []
-        if env.get("AUTH_PASSWORD"):
-            accounts.append((env.get("AUTH_USER", "reader").lower(), env["AUTH_PASSWORD"], env.get("WIDGET_TOKEN", ""),
-                             None, "dav", True))
-        for name, cfg in json.loads(env.get("USERS") or "{}").items():
-            accounts.append((name.lower(), cfg["password"], cfg.get("widget_token", ""), cfg.get("tz"),
-                             "users/%s/dav" % name, False))
-        now = int(time.time())
+    def create_first_admin(self, name, password):
+        """First start only: the admin account from AUTH_USER/AUTH_PASSWORD. Its data lives in DATA_DIR/dav."""
+        name = (name or "").strip().lower()
+        if not NAME_RE.match(name):
+            raise AuthError("AUTH_USER must be 2-32 lowercase letters, digits or _, starting with a letter.")
+        check_new_password(password)
         with self.db() as con:
-            con.execute("BEGIN")
-            for name, password, widget, tz, dav_dir, admin in accounts:
-                cur = con.execute(
-                    "INSERT INTO users (name, password_hash, is_admin, tz, dav_dir, created_at) VALUES (?, ?, ?, ?, ?, ?)",
-                    (name, hash_password(password), int(admin), tz, dav_dir, now))
-                con.execute("INSERT INTO devices (user_id, kind, label, secret_hash, created_at) VALUES (?, 'sync', ?, ?, ?)",
-                            (cur.lastrowid, "E-reader (imported)", sha256(password), now))
-                if widget:
-                    con.execute("INSERT INTO devices (user_id, kind, label, secret_hash, created_at) VALUES (?, 'widget', ?, ?, ?)",
-                                (cur.lastrowid, "iPhone widgets (imported)", sha256(widget), now))
-            con.execute("COMMIT")
-        return [a[0] for a in accounts]
+            con.execute("INSERT INTO users (name, password_hash, is_admin, dav_dir, created_at) VALUES (?, ?, 1, 'dav', ?)",
+                        (name, hash_password(password), int(time.time())))
 
     # ---- authentication ----------------------------------------------------------------------
 
