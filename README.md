@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/logo.svg" width="128" height="128" alt="Reading Stats logo: an open book under misty mountains and a red sun">
+  <img src="docs/logo.svg" width="128" height="128" alt="Reading Stats logo: a round little owl on a night-blue background">
 </p>
 
 <h1 align="center">reading-stats</h1>
@@ -10,10 +10,10 @@
 </p>
 
 <p align="center">
-  <a href="https://koreader.rocks"><img src="https://img.shields.io/badge/KOReader-plugin-2b2925?style=flat-square" alt="KOReader plugin"></a>
+  <a href="https://koreader.rocks"><img src="https://img.shields.io/badge/KOReader-plugin-20335f?style=flat-square" alt="KOReader plugin"></a>
   <img src="https://img.shields.io/badge/Python-standard%20library%20only-3776ab?style=flat-square&logo=python&logoColor=white" alt="Python, standard library only">
   <img src="https://img.shields.io/badge/iPhone-app%20%2B%20widgets-000000?style=flat-square&logo=apple&logoColor=white" alt="iPhone app and widgets">
-  <img src="https://img.shields.io/badge/self--hosted-your%20data-cd604c?style=flat-square" alt="Self-hosted">
+  <img src="https://img.shields.io/badge/self--hosted-your%20data-d08c4f?style=flat-square" alt="Self-hosted">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-8f8e86?style=flat-square" alt="MIT license"></a>
 </p>
 
