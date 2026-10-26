@@ -21,7 +21,6 @@
     --text-muted: #8E95AD;
     --accent: #E0A15E;
     --ink: #1C2A50;
-    --stitch: rgba(244, 235, 221, .26);
     --danger: #F08A7E;
     --ok: #9BD3A6;
     --grid: #2C3A62;
@@ -55,7 +54,6 @@
   .acts { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
   .acts button, .acts button:not(.ghost):not(.danger) { background: var(--surface-2); color: var(--text-primary); font-size: 14px; font-weight: 500; padding: 8px 12px; }
   .acts button.danger { background: var(--surface-2); color: var(--danger); padding: 8px 12px; }
-  .acts button::after { display: none; }
   .msg { margin-top: 12px; font-size: 15px; color: var(--danger); }
   .user .t { font-weight: 600; font-size: 17px; }
   .user .m { color: var(--text-muted); font-size: 13px; margin-top: 2px; }
@@ -72,15 +70,10 @@
   .devs div { display: flex; justify-content: space-between; gap: 8px; padding: 4px 0; }
   .devs button, .devs button:not(.ghost):not(.danger) { background: none; color: var(--danger); padding: 0; font-size: 14px; font-weight: 500; }
 
-  /* stitched details */
+  /* landing page details: serif headings, tan headings and primary buttons */
   h1 { font-family: var(--serif); font-weight: 600; letter-spacing: -.01em; }
   h2 { color: var(--accent); }
-  .card { position: relative; }
-  .card::before { content: ""; position: absolute; inset: 5px; border: 1.5px dashed var(--stitch);
-                  border-radius: 9px; pointer-events: none; }
-  button:not(.ghost):not(.danger) { position: relative; background: var(--accent); color: var(--ink); }
-  button:not(.ghost):not(.danger)::after { content: ""; position: absolute; inset: 3px; border-radius: inherit;
-                  border: 1.5px dashed rgba(28, 42, 80, .45); pointer-events: none; }
+  button:not(.ghost):not(.danger) { background: var(--accent); color: var(--ink); }
 </style>
 </head>
 <body>

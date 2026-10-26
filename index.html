@@ -23,10 +23,10 @@
     --ink: #1C2A50;
     --stitch: rgba(244, 235, 221, .26);
     --seq-0: #24325C;
-    --seq-1: #1D4A8F;
-    --seq-2: #2F6CC4;
-    --seq-3: #5B95E0;
-    --seq-4: #9CC1EE;
+    --seq-1: #8C6440;
+    --seq-2: #C27F45;
+    --seq-3: #E0A15E;
+    --seq-4: #F6D9A8;
     --grid: #2C3A62;
     --serif: ui-serif, "New York", Georgia, serif;
     --nav-h: 58px;
@@ -53,7 +53,7 @@
   nav.tabs {
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 10;
     background: rgba(20,29,54,.92); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px);
-    border-top: 1.5px dashed var(--stitch);
+    border-top: 1px solid var(--grid);
     padding-bottom: env(safe-area-inset-bottom);
     display: flex; justify-content: center;
   }
@@ -209,16 +209,9 @@
   .file .x { flex: none; background: none; border: 0; color: var(--text-muted); font: inherit; font-size: 22px;
              line-height: 1; padding: 4px 6px; }
 
-  /* stitched details: a running stitch just inside cards and tiles, and on primary buttons */
-  .card::before, .tile::before, .quote::before, .group::before {
-    content: ""; position: absolute; inset: 5px; border: 1.5px dashed var(--stitch); border-radius: 9px; pointer-events: none; }
-  .done::after, .seg button.on::after, .chip.on::after { content: ""; position: absolute; inset: 3px; border-radius: inherit;
-    border: 1.5px dashed rgba(28, 42, 80, .45); pointer-events: none; }
-  .seg button, .chip { position: relative; }
-
-  /* the 26 week calendar, cross stitched on linen in a wooden frame */
-  .hoop { border-radius: 14px; padding: 6px; background: #B9844F; box-shadow: 0 10px 30px #0006, inset 0 0 0 1px #ffffff1f; }
-  .hoop .linen { border-radius: 8px; overflow: hidden; background: #EDE3D0; position: relative; }
+  /* the 26 week calendar, cross stitched on night blue cloth */
+  .hoop { border-radius: 14px; overflow: hidden; background: #1C2A50; }
+  .hoop .linen { position: relative; }
   .hoop canvas { display: block; width: 100%; }
   .hoop .no-gl { display: none; }
   .hoop + .legend i { border-radius: 2px; }
@@ -454,7 +447,7 @@ function viewHome() {
     <div class="card" id="bars"></div>
     <h2>26 weeks</h2>
     <div class="hoop" id="heat" style="position:relative"><div class="linen"></div></div>
-    <div class="legend">less <i style="background:#EDE3D0"></i>${STITCH_THREADS.slice(1).map(c => `<i style="background:${c}"></i>`).join("")} more</div>
+    <div class="legend">less <i style="background:#1C2A50"></i>${STITCH_THREADS.slice(1).map(c => `<i style="background:${c}"></i>`).join("")} more</div>
     ${pick ? `<h2>From your highlights</h2>
     <div class="quote"><q>${esc(pick.text)}</q>
       ${pick.note ? `<div class="note" style="margin-top:12px">${esc(pick.note)}</div>` : ""}
@@ -474,9 +467,10 @@ function mountHome() {
   sampler(document.getElementById("heat"), DATA.stats.days);
 }
 
-// The 26 weeks as cross stitch on linen, one stitch per day, deeper blue for longer reading.
+// The 26 weeks as cross stitch on night blue cloth, one stitch per day: tan to cream, brighter for longer reading.
+// The same threads as the widgets and the landing page.
 // One canvas lives across renders: WebGL contexts are costly and browsers cap how many a page holds.
-const STITCH_THREADS = ["", "#9CC1EE", "#5B95E0", "#2F6CC4", "#1D4A8F"];
+const STITCH_THREADS = ["", "#8C6440", "#C27F45", "#E0A15E", "#F6D9A8"];
 const readLevel = s => s < 60 ? 0 : s < 900 ? 1 : s < 1800 ? 2 : s < 3600 ? 3 : 4;
 const stitch = {canvas: document.createElement("canvas"), days: [], lead: 0, weeks: 26, margin: 1};
 let stitchReady = null;
@@ -494,7 +488,7 @@ async function sampler(hoop, days) {
   Object.assign(stitch, {days, lead, weeks: Math.ceil((lead + days.length) / 7)});
   const cols = stitch.weeks + 2 * stitch.margin, rows = 7 + 2 * stitch.margin;
   stitchReady ||= import("/embroidery.js").then(({embroider, plot}) => embroider(stitch.canvas, {
-    cell: w => w / (stitch.weeks + 2 * stitch.margin), fabric: [237, 227, 208], sweep: 1.4,
+    cell: w => w / (stitch.weeks + 2 * stitch.margin), fabric: [28, 42, 80], sweep: 1.4,
     build: ctx => buildSampler(ctx, plot)})).catch(() => null);
   const api = await stitchReady;
   if (!hoop.isConnected) return;

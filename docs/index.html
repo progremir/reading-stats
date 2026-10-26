@@ -46,7 +46,6 @@
   --tan: #E0A15E;
   --tan-hover: #EAB173;
   --cream: #F8E4BF;
-  --linen: #EDE3D0;
   --ink: #1C2A50;
 
   --s-25: 2px; --s-50: 4px; --s-75: 8px; --s-100: 12px; --s-200: 16px; --s-300: 24px;
@@ -200,9 +199,8 @@ p { margin: 0; text-wrap: pretty; }
 @media (min-width: 768px) { .h2 { font-size: 3rem; line-height: 1; } }
 .lead { margin-top: var(--s-200); color: var(--muted); font-size: 1.125rem; line-height: 1.75rem; max-width: 600px; }
 
-/* Sampler: the reading calendar, cross stitched on linen in a wooden frame */
-.frame { margin-top: var(--s-600); border-radius: 24px; padding: var(--s-75); background: #B9844F; box-shadow: 0 24px 64px rgba(0, 0, 0, 0.45), inset 0 0 0 1px rgba(255, 255, 255, 0.12); }
-.frame .linen { border-radius: 16px; overflow: hidden; background: var(--linen); }
+/* Sampler: the reading calendar, cross stitched on night blue cloth */
+.frame { margin-top: var(--s-600); border-radius: 24px; overflow: hidden; background: var(--cloth); box-shadow: 0 24px 64px rgba(0, 0, 0, 0.35); }
 .sampler { display: block; width: 100%; aspect-ratio: 57 / 29; }
 .sampler.no-gl { display: none; }
 @media (max-width: 639px) { .sampler { aspect-ratio: 31 / 31; } }
@@ -396,14 +394,14 @@ footer { padding: var(--s-600) 0 var(--s-700); color: var(--faint); font-size: .
       <div class="reveal">
         <span class="kicker">Your year</span>
         <h2 class="h2" id="y-title">Half a year of reading, one stitch per day</h2>
-        <p class="lead">Every day you open a book on your Kobo becomes a square on your calendar. The deeper the blue, the longer you read.</p>
+        <p class="lead">Every day you open a book on your Kobo becomes a square on your calendar. The brighter the thread, the longer you read.</p>
       </div>
       <div class="frame reveal">
         <div class="linen"><canvas class="sampler" id="sampler" role="img" aria-label="A 26 week reading calendar in cross stitch, with a 12 day streak"></canvas></div>
       </div>
       <div class="legend reveal">
         <span id="sampler-caption">Days read in the last 26 weeks</span>
-        <span class="swatches">Less <i style="background:#EDE3D0"></i><i style="background:#9CC1EE"></i><i style="background:#5B95E0"></i><i style="background:#2F6CC4"></i><i style="background:#1D4A8F"></i> More</span>
+        <span class="swatches">Less <i style="background:#1C2A50;box-shadow:inset 0 0 0 1px rgba(244,235,221,.2)"></i><i style="background:#8C6440"></i><i style="background:#C27F45"></i><i style="background:#E0A15E"></i><i style="background:#F6D9A8"></i> More</span>
       </div>
       <div class="tallies">
         <div class="tally patch reveal"><div class="n">42<small>min</small></div><p class="l">read today</p></div>
@@ -692,8 +690,8 @@ const hero = embroider(document.getElementById('cloth'), {
 });
 owl.addEventListener('load', () => hero && hero.relayout());
 
-// Sampler: the reading calendar in cross stitch on linen
-const LEVELS = ['#D9CDB6', '#9CC1EE', '#5B95E0', '#2F6CC4', '#1D4A8F'];
+// Sampler: the reading calendar in cross stitch, the same threads as the web app and the widgets
+const LEVELS = ['', '#8C6440', '#C27F45', '#E0A15E', '#F6D9A8'];
 const FLAME = ['...o...', '...oo..', '..ooo..', '.ooooo.', '.ooyoo.', 'ooyyyoo', 'ooyyyoo', '.ooyoo.', '..ooo..'];
 function calendar(weeks) {
   const rand = rng(42), days = [];
@@ -711,20 +709,20 @@ function buildSampler(ctx, { cols }) {
   const days = calendar(weeks);
   const read = days.filter(Boolean).length;
   document.getElementById('sampler-caption').textContent = `${read} days read in the last ${weeks} weeks`;
-  if (weeks === 26) stitchText(ctx, String(read), m, m, '#1C2A50');
+  if (weeks === 26) stitchText(ctx, String(read), m, m, '#F8E4BF');
   const streak = '12';
   const fx = cols - m - textWidth(streak) - 9;
   FLAME.forEach((row, y) => [...row].forEach((ch, x) => {
-    if (ch !== '.') plot(ctx, fx + x, m - 1 + y, ch === 'o' ? '#E07B2E' : '#F2B33D');
+    if (ch !== '.') plot(ctx, fx + x, m - 1 + y, ch === 'o' ? '#F0913A' : '#F2B33D');
   }));
-  stitchText(ctx, streak, cols - m - textWidth(streak), m, '#E07B2E');
+  stitchText(ctx, streak, cols - m - textWidth(streak), m, '#F0913A');
   const top = m + 7 + 3;
   days.forEach((lvl, i) => lvl && plot(ctx, m + 2 * Math.floor(i / 7), top + 2 * (i % 7), LEVELS[lvl]));
 }
 
 embroider(document.getElementById('sampler'), {
   cell: w => w / (w < 640 ? 31 : 57),
-  fabric: [237, 227, 208],
+  fabric: [28, 42, 80],
   build: buildSampler,
   sweep: 1.6,
 });

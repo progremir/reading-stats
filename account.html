@@ -21,7 +21,6 @@
     --text-muted: #8E95AD;
     --accent: #E0A15E;
     --ink: #1C2A50;
-    --stitch: rgba(244, 235, 221, .26);
     --danger: #F08A7E;
     --ok: #9BD3A6;
     --grid: #2C3A62;
@@ -75,15 +74,10 @@
   .links { display: flex; gap: 18px; margin-top: 30px; }
   .empty { color: var(--text-muted); font-size: 15px; }
 
-  /* stitched details */
+  /* landing page details: serif headings, tan headings and primary buttons */
   h1 { font-family: var(--serif); font-weight: 600; letter-spacing: -.01em; }
   h2 { color: var(--accent); }
-  .card { position: relative; }
-  .card::before { content: ""; position: absolute; inset: 5px; border: 1.5px dashed var(--stitch);
-                  border-radius: 9px; pointer-events: none; }
-  button:not(.ghost):not(.danger) { position: relative; background: var(--accent); color: var(--ink); }
-  button:not(.ghost):not(.danger)::after { content: ""; position: absolute; inset: 3px; border-radius: inherit;
-                  border: 1.5px dashed rgba(28, 42, 80, .45); pointer-events: none; }
+  button:not(.ghost):not(.danger) { background: var(--accent); color: var(--ink); }
 </style>
 </head>
 <body>
