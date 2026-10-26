@@ -1,14 +1,7 @@
 import SwiftUI
 import WidgetKit
 
-/// GitHub-style grid of daily reading: one column per week, Monday at the top.
-private let levels: [Color] = [
-    Color(red: 0x2C / 255, green: 0x2C / 255, blue: 0x2A / 255),
-    Color(red: 0x10 / 255, green: 0x42 / 255, blue: 0x81 / 255),
-    Color(red: 0x1C / 255, green: 0x5C / 255, blue: 0xAB / 255),
-    Color(red: 0x39 / 255, green: 0x87 / 255, blue: 0xE5 / 255),
-    Color(red: 0x86 / 255, green: 0xB6 / 255, blue: 0xEF / 255),
-]
+/// Daily reading as cross stitch on linen: one column per week, Monday at the top.
 
 private func level(_ seconds: Int) -> Int {
     switch seconds {
@@ -29,6 +22,21 @@ private func weeks(_ days: [Int], ending today: Date = .now) -> [[Int?]] {
     let lead = (7 - padded.count % 7) % 7
     let cells: [Int?] = Array(repeating: nil, count: lead) + padded
     return stride(from: 0, to: cells.count, by: 7).map { Array(cells[$0..<$0 + 7]) }
+}
+
+/// The calendar on a piece of linen in a thin wooden frame.
+struct Sampler: View {
+    let days: [Int]
+    var allWeeks = false
+
+    var body: some View {
+        HeatGrid(days: days, gap: 1, allWeeks: allWeeks)
+            .frame(maxWidth: .infinity)
+            .padding(6)
+            .background(Theme.linen, in: RoundedRectangle(cornerRadius: 8))
+            .padding(3)
+            .background(Theme.wood, in: RoundedRectangle(cornerRadius: 11))
+    }
 }
 
 struct HeatGrid: View {
@@ -56,16 +64,38 @@ struct HeatGrid: View {
     }
 
     private func grid(_ shown: [[Int?]], cell: CGFloat) -> some View {
-        HStack(alignment: .top, spacing: gap) {
-            ForEach(Array(shown.enumerated()), id: \.offset) { _, week in
-                VStack(spacing: gap) {
-                    ForEach(0..<7, id: \.self) { d in
-                        RoundedRectangle(cornerRadius: cell * 0.22)
-                            .fill(week[d].map { levels[level($0)] } ?? .clear)
-                            .frame(width: cell, height: cell)
+        let step = cell + gap
+        return Canvas { ctx, _ in
+            for (w, week) in shown.enumerated() {
+                for d in 0..<7 {
+                    guard let seconds = week[d] else { continue }
+                    let rect = CGRect(x: CGFloat(w) * step, y: CGFloat(d) * step, width: cell, height: cell)
+                    let l = level(seconds)
+                    if l == 0 {
+                        ctx.fill(Path(ellipseIn: rect.insetBy(dx: cell * 0.42, dy: cell * 0.42)), with: .color(.black.opacity(0.18)))
+                    } else {
+                        crossStitch(ctx, in: rect, color: Theme.threads[l])
                     }
                 }
             }
+        }
+        .frame(width: CGFloat(shown.count) * step - gap, height: 7 * step - gap)
+    }
+
+    /// Two legs of floss, the second crossing over the first, with a soft shadow and a sheen.
+    private func crossStitch(_ ctx: GraphicsContext, in r: CGRect, color: Color) {
+        let inset = r.width * 0.1, width = r.width * 0.3
+        let a = r.insetBy(dx: inset, dy: inset)
+        let legs = [(CGPoint(x: a.minX, y: a.maxY), CGPoint(x: a.maxX, y: a.minY)),
+                    (CGPoint(x: a.minX, y: a.minY), CGPoint(x: a.maxX, y: a.maxY))]
+        for (from, to) in legs {
+            var leg = Path()
+            leg.move(to: from)
+            leg.addLine(to: to)
+            let shadow = leg.offsetBy(dx: width * 0.25, dy: width * 0.3)
+            ctx.stroke(shadow, with: .color(.black.opacity(0.18)), style: StrokeStyle(lineWidth: width, lineCap: .round))
+            ctx.stroke(leg, with: .color(color), style: StrokeStyle(lineWidth: width, lineCap: .round))
+            ctx.stroke(leg, with: .color(.white.opacity(0.28)), style: StrokeStyle(lineWidth: width * 0.3, lineCap: .round))
         }
     }
 }
@@ -81,22 +111,22 @@ struct HeatmapView: View {
         VStack(alignment: .leading, spacing: family == .systemSmall ? 8 : 10) {
             HStack(alignment: .firstTextBaseline) {
                 if family == .systemSmall {
-                    Text(Format.durationText(s.today)).font(.system(size: 15, weight: .bold)).monospacedDigit()
+                    Text(Format.durationText(s.today)).font(.system(size: 16, weight: .semibold, design: .serif)).monospacedDigit()
                 } else {
-                    Text("Reading").font(.system(size: 15, weight: .semibold))
+                    Text("Reading").font(.system(size: 16, weight: .semibold, design: .serif))
                     Text("\(readDays) days in 26 weeks")
-                        .font(.system(size: 12)).foregroundStyle(Color(white: 0.56))
+                        .font(.system(size: 12)).foregroundStyle(Theme.muted)
                 }
                 Spacer()
                 Label("\(s.streak)", systemImage: "flame.fill")
                     .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(s.streak > 0 ? .orange : Color(white: 0.56))
+                    .foregroundStyle(s.streak > 0 ? Theme.flame : Theme.muted)
             }
             if family == .systemSmall {
-                HeatGrid(days: days)
+                Sampler(days: days)
             } else {
                 Spacer(minLength: 0)
-                HeatGrid(days: days, gap: 3, allWeeks: true)
+                Sampler(days: days, allWeeks: true)
                 Spacer(minLength: 0)
             }
             if family == .systemLarge {
@@ -106,15 +136,15 @@ struct HeatmapView: View {
                     stat(Format.durationText(s.month), "this month")
                 }
                 if let book = s.book {
-                    Divider().overlay(Color(white: 0.2))
+                    Divider().overlay(Theme.stitch)
                     VStack(alignment: .leading, spacing: 6) {
                         HStack(alignment: .firstTextBaseline) {
                             Text(book.title).font(.system(size: 16, weight: .semibold, design: .serif)).lineLimit(1)
                             Spacer()
                             Text("\(Int((book.progress * 100).rounded()))%")
-                                .font(.system(size: 13, weight: .semibold)).foregroundStyle(Color(white: 0.56))
+                                .font(.system(size: 13, weight: .semibold)).foregroundStyle(Theme.muted)
                         }
-                        Text(book.authors).font(.system(size: 12)).foregroundStyle(Color(white: 0.56)).lineLimit(1)
+                        Text(book.authors).font(.system(size: 12)).foregroundStyle(Theme.muted).lineLimit(1)
                         ProgressBar(value: book.progress)
                     }
                 }
@@ -124,8 +154,8 @@ struct HeatmapView: View {
 
     private func stat(_ value: String, _ label: String) -> some View {
         VStack(alignment: .leading, spacing: 1) {
-            Text(value).font(.system(size: 17, weight: .bold)).monospacedDigit()
-            Text(label).font(.system(size: 12)).foregroundStyle(Color(white: 0.56))
+            Text(value).font(.system(size: 18, weight: .semibold, design: .serif)).monospacedDigit().foregroundStyle(Theme.cream)
+            Text(label).font(.system(size: 12)).foregroundStyle(Theme.muted)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -135,11 +165,11 @@ struct HeatmapWidget: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: "ReadingHeatmap", provider: Provider()) { entry in
             HeatmapView(entry: entry)
-                .foregroundStyle(.white)
-                .containerBackground(for: .widget) { Color(white: 0.07) }
+                .foregroundStyle(Theme.text)
+                .containerBackground(for: .widget) { ClothBackground() }
         }
         .configurationDisplayName("Reading calendar")
-        .description("Every day you read, like a GitHub contribution graph.")
+        .description("Every day you read, one cross stitch per day.")
         .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
     }
 }

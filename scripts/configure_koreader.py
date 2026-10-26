@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Point a KOReader install (mounted over USB) at a reading-stats server.
+"""Point a KOReader install (mounted over USB) at a Readstreak server.
 
 Run it while the e-reader is mounted as a drive and KOReader is NOT running
 (on a Kindle, the drive only mounts once KOReader has exited). It:
@@ -140,7 +140,7 @@ def edit_settings(path, server, args):
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--device", required=True, help="mount point of the e-reader, e.g. /Volumes/Kindle")
-    ap.add_argument("--server", required=True, help="reading-stats base URL, e.g. https://read.example.com")
+    ap.add_argument("--server", required=True, help="Readstreak base URL, e.g. https://read.example.com")
     ap.add_argument("--user", default="reader", help="the reader's username on the server")
     ap.add_argument("--password", required=True, help="an e-reader (device) password from the account page")
     ap.add_argument("--home-dir", help="folder KOReader opens to, as the device sees it (e.g. /mnt/us/documents/Books)")

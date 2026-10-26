@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="docs/logo.svg" width="128" height="128" alt="Reading Stats logo: a round little owl on a night-blue background">
+  <img src="docs/logo.svg" width="128" height="128" alt="Readstreak logo: a round little owl on a night-blue background">
 </p>
 
-<h1 align="center">reading-stats</h1>
+<h1 align="center">Readstreak</h1>
 
 <p align="center">
   <b>Your e-reader's reading time, streaks and highlights, on your phone.</b><br>
@@ -36,9 +36,9 @@ widgets. One server can serve a whole household, with a separate account for eac
   <img src="docs/screenshots/highlights.png" width="200" alt="Highlights: search, filters and grouping by book">
 </p>
 <p align="center">
-  <img src="docs/screenshots/today-charts.png" width="200" alt="Last 30 days, a 26-week calendar and a highlight of the day">
+  <img src="docs/screenshots/today-charts.png" width="200" alt="Last 30 days and the 26-week calendar, cross stitched on linen">
   <img src="docs/screenshots/book.png" width="200" alt="A book's page: progress, time, days read and highlights by chapter">
-  <img src="docs/screenshots/widgets.png" width="200" alt="iPhone widgets: today, current book and a GitHub-style reading calendar">
+  <img src="docs/screenshots/widgets.png" width="200" alt="iPhone widgets: today, current book and a cross stitch reading calendar">
 </p>
 
 <p align="center"><sub>Screenshots use the demo library from <code>scripts/demo_data.py</code>.</sub></p>
@@ -145,7 +145,7 @@ Everyone has an **account page**:
 - **Password**: changing it signs out their other browsers and phones. E-readers and widgets keep
   working, since they use their own secrets.
 - **E-readers**: device passwords for KOReader. Make one per device, revoke one if it's lost.
-- **iPhone widgets**: one entry per phone, added when the Reading app signs in.
+- **iPhone widgets**: one entry per phone, added when the Readstreak app signs in.
 - **Signed in**: every browser and phone with a session; sign out any of them.
 
 Where data lives:

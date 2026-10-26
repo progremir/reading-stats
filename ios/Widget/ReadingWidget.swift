@@ -1,8 +1,8 @@
 import SwiftUI
 import WidgetKit
 
-private let accent = Color(red: 0x39 / 255, green: 0x87 / 255, blue: 0xE5 / 255)
-private let muted = Color(white: 0.56)
+private let accent = Theme.tan
+private let muted = Theme.muted
 
 struct Entry: TimelineEntry {
     let date: Date
@@ -57,6 +57,18 @@ enum Cache {
 
 // MARK: - Pieces
 
+/// Night blue cloth with a running stitch just inside the edge, like a sewn on patch.
+struct ClothBackground: View {
+    var body: some View {
+        ZStack {
+            Theme.cloth
+            ContainerRelativeShape()
+                .inset(by: 6)
+                .stroke(Theme.stitch, style: Theme.runningStitch)
+        }
+    }
+}
+
 struct BigDuration: View {
     let seconds: Int
     var size: CGFloat = 40
@@ -64,7 +76,7 @@ struct BigDuration: View {
     var body: some View {
         let d = Format.duration(seconds)
         HStack(alignment: .firstTextBaseline, spacing: 3) {
-            Text(d.value).font(.system(size: size, weight: .bold, design: .rounded)).monospacedDigit()
+            Text(d.value).font(.system(size: size, weight: .semibold, design: .serif)).monospacedDigit()
             Text(d.unit).font(.system(size: size * 0.4, weight: .semibold)).foregroundStyle(muted)
         }
         .minimumScaleFactor(0.6)
@@ -80,7 +92,7 @@ struct WeekBars: View {
         HStack(alignment: .bottom, spacing: 4) {
             ForEach(Array(values.enumerated()), id: \.offset) { index, value in
                 RoundedRectangle(cornerRadius: 2.5)
-                    .fill(value > 0 ? accent.opacity(index == values.count - 1 ? 1 : 0.7) : Color(white: 0.2))
+                    .fill(value > 0 ? accent.opacity(index == values.count - 1 ? 1 : 0.7) : Theme.surface)
                     .frame(maxWidth: .infinity)
                     .frame(height: max(3, CGFloat(value) / CGFloat(top) * 34))
             }
@@ -95,7 +107,7 @@ struct ProgressBar: View {
     var body: some View {
         GeometryReader { geo in
             ZStack(alignment: .leading) {
-                Capsule().fill(Color(white: 0.2))
+                Capsule().fill(Theme.surface)
                 Capsule().fill(accent).frame(width: max(4, geo.size.width * min(max(value, 0), 1)))
             }
         }
@@ -109,7 +121,7 @@ struct StreakLabel: View {
     var body: some View {
         Label("\(streak)", systemImage: "flame.fill")
             .font(.system(size: 13, weight: .semibold))
-            .foregroundStyle(streak > 0 ? .orange : muted)
+            .foregroundStyle(streak > 0 ? Theme.flame : muted)
             .labelStyle(.titleAndIcon)
     }
 }
@@ -223,10 +235,10 @@ struct ReadingWidget: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: "ReadingWidget", provider: Provider()) { entry in
             ReadingWidgetView(entry: entry)
-                .foregroundStyle(.white)
-                .containerBackground(for: .widget) { Color(white: 0.07) }
+                .foregroundStyle(Theme.text)
+                .containerBackground(for: .widget) { ClothBackground() }
         }
-        .configurationDisplayName("Reading")
+        .configurationDisplayName("Readstreak")
         .description("Today's reading time, streak and current book.")
         .supportedFamilies([.systemSmall, .systemMedium, .accessoryCircular, .accessoryRectangular, .accessoryInline])
     }

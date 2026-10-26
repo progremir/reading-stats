@@ -157,7 +157,7 @@ def main():
             dest = root / "covers" / (book_id(title) + ".jpg")
             url = "https://www.gutenberg.org/cache/epub/%d/pg%d.cover.medium.jpg" % (gid, gid)
             try:
-                req = urllib.request.Request(url, headers={"User-Agent": "reading-stats demo"})
+                req = urllib.request.Request(url, headers={"User-Agent": "readstreak demo"})
                 dest.write_bytes(urllib.request.urlopen(req, timeout=20).read())
             except OSError as e:
                 print("no cover for %s: %s" % (title, e), file=sys.stderr)

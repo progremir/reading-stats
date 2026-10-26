@@ -1,4 +1,4 @@
-"""Reading stats: a tiny WebDAV store for KOReader's statistics sync, plus a dashboard.
+"""Readstreak: a tiny WebDAV store for KOReader's statistics sync, plus a dashboard.
 
 KOReader (Reading statistics > Settings > Cloud sync) GETs and PUTs
 statistics.sqlite3 in a WebDAV folder. This serves that folder at /dav/
@@ -83,6 +83,9 @@ INDEX_HTML = (Path(__file__).parent / "index.html").read_text()
 LOGIN_HTML = (Path(__file__).parent / "login.html").read_text()
 ACCOUNT_HTML = (Path(__file__).parent / "account.html").read_text()
 ADMIN_HTML = (Path(__file__).parent / "admin.html").read_text()
+# The cross stitch shader and the owl, shared with the landing page in docs/
+STATIC = {"/embroidery.js": ("embroidery.js", "text/javascript; charset=utf-8"), "/owl.png": ("owl.png", "image/png")}
+STATIC = {url: ((Path(__file__).parent / "docs" / name).read_bytes(), ctype) for url, (name, ctype) in STATIC.items()}
 
 
 def etag_of(path):
@@ -260,12 +263,12 @@ def fetch_cover(title, authors):
     for params in (q, {k: v for k, v in q.items() if k != "author"}):
         try:
             url = "https://openlibrary.org/search.json?" + urllib.parse.urlencode(params)
-            req = urllib.request.Request(url, headers={"User-Agent": "reading-stats"})
+            req = urllib.request.Request(url, headers={"User-Agent": "readstreak"})
             docs = json.load(urllib.request.urlopen(req, timeout=10)).get("docs") or []
             cover = docs and docs[0].get("cover_i")
             if cover:
                 req = urllib.request.Request("https://covers.openlibrary.org/b/id/%d-M.jpg?default=false" % cover,
-                                             headers={"User-Agent": "reading-stats"})
+                                             headers={"User-Agent": "readstreak"})
                 return urllib.request.urlopen(req, timeout=15).read()
         except (OSError, ValueError) as e:
             print("cover lookup failed for %r: %s" % (title, e), flush=True)
@@ -626,6 +629,10 @@ class Handler(BaseHTTPRequestHandler):
         path = urllib.parse.urlsplit(self.path).path
         if path == "/healthz":
             return self.send(200, b"ok")
+        if path in STATIC:
+            self.drain()
+            body, ctype = STATIC[path]
+            return self.send(200, body, ctype, {"Cache-Control": "public, max-age=3600"})
         if path == "/login":
             if self.command == "POST":
                 return self.handle_login()

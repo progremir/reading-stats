@@ -3,17 +3,17 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Reading Stats · KOReader reading time on your iPhone</title>
-<meta name="description" content="Reading Stats syncs your KOReader reading time, streaks and highlights to a small server you own, and shows them on the web and in iPhone widgets. Free and open source.">
+<title>Readstreak · KOReader reading time on your iPhone</title>
+<meta name="description" content="Readstreak syncs your KOReader reading time, streaks and highlights to a small server you own, and shows them on the web and in iPhone widgets. Free and open source.">
 <meta name="theme-color" content="#141D36">
 <link rel="icon" href="logo.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="owl.png">
-<link rel="canonical" href="https://progremir.github.io/reading-stats/">
+<link rel="canonical" href="https://progremir.github.io/readstreak/">
 <meta property="og:type" content="website">
-<meta property="og:title" content="Reading Stats · KOReader reading time on your iPhone">
+<meta property="og:title" content="Readstreak · KOReader reading time on your iPhone">
 <meta property="og:description" content="Reading time, streaks and highlights from your e reader, on the web and in iPhone widgets. Runs on a server you own.">
-<meta property="og:url" content="https://progremir.github.io/reading-stats/">
-<meta property="og:image" content="https://progremir.github.io/reading-stats/screenshots/today.png">
+<meta property="og:url" content="https://progremir.github.io/readstreak/">
+<meta property="og:image" content="https://progremir.github.io/readstreak/screenshots/today.png">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -27,7 +27,7 @@
   "mainEntity": [
     {"@type": "Question", "name": "Which readers does it work with?", "acceptedAnswer": {"@type": "Answer", "text": "Anything that runs KOReader: Kobo, PocketBook, Android readers and jailbroken Kindles. Highlights from the stock Kindle reader come in through My Clippings.txt."}},
     {"@type": "Question", "name": "Do I really need my own server?", "acceptedAnswer": {"@type": "Answer", "text": "Yes. That is where your data lives. INSTALL.md walks through deploying it to Railway, and it runs anywhere Python 3 does."}},
-    {"@type": "Question", "name": "What does it cost?", "acceptedAnswer": {"@type": "Answer", "text": "Nothing. Reading Stats is MIT licensed. You only pay for whatever hosts your server."}}
+    {"@type": "Question", "name": "What does it cost?", "acceptedAnswer": {"@type": "Answer", "text": "Nothing. Readstreak is MIT licensed. You only pay for whatever hosts your server."}}
   ]
 }
 </script>
@@ -348,9 +348,9 @@ footer { padding: var(--s-600) 0 var(--s-700); color: var(--faint); font-size: .
 
 <header class="nav-wrap">
   <nav class="nav" aria-label="Main">
-    <a class="brand" href="#top" aria-label="Reading Stats, back to top">
+    <a class="brand" href="#top" aria-label="Readstreak, back to top">
       <img src="logo.svg" alt="" width="24" height="24">
-      <span>Reading Stats</span>
+      <span>Readstreak</span>
     </a>
     <ul class="nav-links">
       <li><a href="#year">Your year</a></li>
@@ -358,7 +358,7 @@ footer { padding: var(--s-600) 0 var(--s-700); color: var(--faint); font-size: .
       <li><a href="#how">How it works</a></li>
       <li><a href="#faq">FAQ</a></li>
     </ul>
-    <a class="btn btn-primary btn-sm" href="https://github.com/progremir/reading-stats/blob/main/INSTALL.md">Set up</a>
+    <a class="btn btn-primary btn-sm" href="https://github.com/progremir/readstreak/blob/main/INSTALL.md">Set up</a>
     <button class="nav-toggle" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="menu"><span></span><span></span></button>
   </nav>
 </header>
@@ -367,7 +367,7 @@ footer { padding: var(--s-600) 0 var(--s-700); color: var(--faint); font-size: .
   <a href="#features">Features</a>
   <a href="#how">How it works</a>
   <a href="#faq">FAQ</a>
-  <a class="btn btn-primary" href="https://github.com/progremir/reading-stats/blob/main/INSTALL.md">Set up your server</a>
+  <a class="btn btn-primary" href="https://github.com/progremir/readstreak/blob/main/INSTALL.md">Set up your server</a>
 </div>
 
 <main id="main">
@@ -377,9 +377,9 @@ footer { padding: var(--s-600) 0 var(--s-700); color: var(--faint); font-size: .
       <div class="hero-copy" id="hero-copy">
         <a class="eyebrow" href="https://testflight.apple.com/join/KPEdXnF8"><i class="ph ph-device-mobile"></i> <span><b>iPhone app and widgets</b> on TestFlight</span></a>
         <h1>Every page you read, <em>counted</em> on your iPhone</h1>
-        <p class="sub">Reading Stats syncs KOReader's reading time, streaks and highlights to a small server you own, then shows them on the web and in iPhone widgets.</p>
+        <p class="sub">Readstreak syncs KOReader's reading time, streaks and highlights to a small server you own, then shows them on the web and in iPhone widgets.</p>
         <div class="cta-row">
-          <a class="btn btn-primary" href="https://github.com/progremir/reading-stats/blob/main/INSTALL.md">Set up your server <i class="ph ph-arrow-right"></i></a>
+          <a class="btn btn-primary" href="https://github.com/progremir/readstreak/blob/main/INSTALL.md">Set up your server <i class="ph ph-arrow-right"></i></a>
         </div>
         <div class="proof">
           <span><i class="ph ph-scales"></i> Free and MIT licensed</span>
@@ -446,7 +446,7 @@ footer { padding: var(--s-600) 0 var(--s-700); color: var(--faint); font-size: .
             <h3><i class="ph ph-squares-four"></i>Your streak on the Home Screen</h3>
             <p>Widgets for today, the book you're on and a reading calendar, plus Lock Screen widgets.</p>
           </div>
-          <div class="card-media widgets"><div class="shot" style="background:transparent"><img src="screenshots/widgets.png" width="836" height="2028" loading="lazy" alt="iPhone widgets showing 42 minutes today, a 12 day streak and a reading calendar"></div></div>
+          <div class="card-media widgets"><div class="shot" style="background:transparent"><img src="screenshots/widgets.png" width="836" height="1216" loading="lazy" alt="iPhone widgets showing 42 minutes today, a 12 day streak and a reading calendar"></div></div>
         </article>
         <article class="card patch b-2 reveal">
           <div class="card-body">
@@ -485,7 +485,7 @@ footer { padding: var(--s-600) 0 var(--s-700); color: var(--faint); font-size: .
         <article class="step patch reveal">
           <div class="num">2</div>
           <h3>Your server keeps it</h3>
-          <p><code>server.py</code> is a WebDAV folder per account plus the web app and API. Deploy it to Railway by following <a href="https://github.com/progremir/reading-stats/blob/main/INSTALL.md">INSTALL.md</a>.</p>
+          <p><code>server.py</code> is a WebDAV folder per account plus the web app and API. Deploy it to Railway by following <a href="https://github.com/progremir/readstreak/blob/main/INSTALL.md">INSTALL.md</a>.</p>
         </article>
         <article class="step patch reveal">
           <div class="num">3</div>
@@ -500,8 +500,8 @@ footer { padding: var(--s-600) 0 var(--s-700); color: var(--faint); font-size: .
         </div>
         <div>
           <div class="term">
-            <pre id="cmd"><b>git clone https://github.com/progremir/reading-stats</b>
-<b>cd reading-stats &amp;&amp; scripts/demo_data.py ./demo-data</b>
+            <pre id="cmd"><b>git clone https://github.com/progremir/readstreak</b>
+<b>cd readstreak &amp;&amp; scripts/demo_data.py ./demo-data</b>
 <b>AUTH_PASSWORD=demo-password-123 DATA_DIR=./demo-data python3 server.py</b>
 # open http://localhost:8080</pre>
             <button class="copy" type="button" id="copy"><i class="ph ph-copy"></i><span>Copy</span></button>
@@ -541,7 +541,7 @@ footer { padding: var(--s-600) 0 var(--s-700); color: var(--faint); font-size: .
       <div class="reveal">
         <span class="kicker">FAQ</span>
         <h2 class="h2" id="q-title">Questions before you set it up</h2>
-        <p class="lead">Something missing? <a href="https://github.com/progremir/reading-stats/issues">Open an issue on GitHub</a>.</p>
+        <p class="lead">Something missing? <a href="https://github.com/progremir/readstreak/issues">Open an issue on GitHub</a>.</p>
       </div>
       <div class="faq reveal">
         <details>
@@ -550,11 +550,11 @@ footer { padding: var(--s-600) 0 var(--s-700); color: var(--faint); font-size: .
         </details>
         <details>
           <summary>Do I really need my own server?<i class="ph ph-plus"></i></summary>
-          <div class="a">Yes. That is where your data lives. <a href="https://github.com/progremir/reading-stats/blob/main/INSTALL.md">INSTALL.md</a> walks through deploying it to Railway, and it runs anywhere Python 3 does: a home server, a Raspberry Pi or a small VPS.</div>
+          <div class="a">Yes. That is where your data lives. <a href="https://github.com/progremir/readstreak/blob/main/INSTALL.md">INSTALL.md</a> walks through deploying it to Railway, and it runs anywhere Python 3 does: a home server, a Raspberry Pi or a small VPS.</div>
         </details>
         <details>
           <summary>What does it cost?<i class="ph ph-plus"></i></summary>
-          <div class="a">Nothing. Reading Stats is MIT licensed. You only pay for whatever hosts your server, if anything.</div>
+          <div class="a">Nothing. Readstreak is MIT licensed. You only pay for whatever hosts your server, if anything.</div>
         </details>
         <details>
           <summary>Is there an app for Android?<i class="ph ph-plus"></i></summary>
@@ -583,11 +583,11 @@ footer { padding: var(--s-600) 0 var(--s-700); color: var(--faint); font-size: .
   <section class="section" aria-labelledby="c-title" style="padding-top:0">
     <div class="container">
       <div class="final patch reveal">
-        <div class="badge"><img src="owl.png" alt="The Reading Stats owl" width="88" height="88"></div>
+        <div class="badge"><img src="owl.png" alt="The Readstreak owl" width="88" height="88"></div>
         <h2 id="c-title">See your streak without picking up the reader</h2>
         <p class="lead">Follow INSTALL.md yourself, or hand it to a coding agent and let it do the steps.</p>
         <div class="cta-row">
-          <a class="btn btn-primary" href="https://github.com/progremir/reading-stats/blob/main/INSTALL.md">Set up your server <i class="ph ph-arrow-right"></i></a>
+          <a class="btn btn-primary" href="https://github.com/progremir/readstreak/blob/main/INSTALL.md">Set up your server <i class="ph ph-arrow-right"></i></a>
         </div>
         <div class="reversal">
           <span><i class="ph-fill ph-check-circle"></i> Free and MIT licensed</span>
@@ -604,9 +604,9 @@ footer { padding: var(--s-600) 0 var(--s-700); color: var(--faint); font-size: .
   <div class="container foot-row">
     <span>Made for people who read on E Ink and like to see their streaks.</span>
     <nav aria-label="Footer">
-      <a href="https://github.com/progremir/reading-stats">GitHub</a>
-      <a href="https://github.com/progremir/reading-stats/blob/main/PRIVACY.md">Privacy policy</a>
-      <a href="https://github.com/progremir/reading-stats/blob/main/LICENSE">License and terms</a>
+      <a href="https://github.com/progremir/readstreak">GitHub</a>
+      <a href="https://github.com/progremir/readstreak/blob/main/PRIVACY.md">Privacy policy</a>
+      <a href="https://github.com/progremir/readstreak/blob/main/LICENSE">License and terms</a>
     </nav>
   </div>
 </footer>
