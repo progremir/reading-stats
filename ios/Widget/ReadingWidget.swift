@@ -1,8 +1,8 @@
 import SwiftUI
 import WidgetKit
 
-private let accent = Color(red: 0x39 / 255, green: 0x87 / 255, blue: 0xE5 / 255)
-private let muted = Color(white: 0.56)
+private let accent = Theme.tan
+private let muted = Theme.muted
 
 struct Entry: TimelineEntry {
     let date: Date
@@ -57,6 +57,7 @@ enum Cache {
 
 // MARK: - Pieces
 
+
 struct BigDuration: View {
     let seconds: Int
     var size: CGFloat = 40
@@ -64,7 +65,7 @@ struct BigDuration: View {
     var body: some View {
         let d = Format.duration(seconds)
         HStack(alignment: .firstTextBaseline, spacing: 3) {
-            Text(d.value).font(.system(size: size, weight: .bold, design: .rounded)).monospacedDigit()
+            Text(d.value).font(.system(size: size, weight: .semibold, design: .serif)).monospacedDigit()
             Text(d.unit).font(.system(size: size * 0.4, weight: .semibold)).foregroundStyle(muted)
         }
         .minimumScaleFactor(0.6)
@@ -72,20 +73,31 @@ struct BigDuration: View {
     }
 }
 
+/// The last seven days as columns of cross stitch, one stitch wide so the stitches stay big enough to read,
+/// filled to the top at 30 minutes or the week's longest day: earlier days in muted tan thread, today in the most vivid one.
 struct WeekBars: View {
     let values: [Int]
+    private let rows = 4
 
     var body: some View {
         let top = max(values.max() ?? 0, 1_800)
-        HStack(alignment: .bottom, spacing: 4) {
-            ForEach(Array(values.enumerated()), id: \.offset) { index, value in
-                RoundedRectangle(cornerRadius: 2.5)
-                    .fill(value > 0 ? accent.opacity(index == values.count - 1 ? 1 : 0.7) : Color(white: 0.2))
-                    .frame(maxWidth: .infinity)
-                    .frame(height: max(3, CGFloat(value) / CGFloat(top) * 34))
+        let cols = values.count * 2 - 1
+        GeometryReader { geo in
+            let cell = min(geo.size.width / CGFloat(cols), geo.size.height / CGFloat(rows))
+            Canvas { ctx, _ in
+                let earlier = ctx.resolve(stitchImage(2)), today = ctx.resolve(stitchImage(4))
+                drawHoles(ctx, cols: cols, rows: rows, cell: cell)
+                for (i, value) in values.enumerated() where value > 0 {
+                    let height = min(rows, max(1, Int((Double(value) / Double(top) * Double(rows)).rounded())))
+                    for k in 0..<height {
+                        drawStitch(ctx, i == values.count - 1 ? today : earlier, col: 2 * i, row: rows - 1 - k, cell: cell)
+                    }
+                }
             }
+            .frame(width: cell * CGFloat(cols), height: cell * CGFloat(rows))
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
         }
-        .frame(height: 34, alignment: .bottom)
+        .frame(height: 44)
     }
 }
 
@@ -95,7 +107,7 @@ struct ProgressBar: View {
     var body: some View {
         GeometryReader { geo in
             ZStack(alignment: .leading) {
-                Capsule().fill(Color(white: 0.2))
+                Capsule().fill(Theme.surface)
                 Capsule().fill(accent).frame(width: max(4, geo.size.width * min(max(value, 0), 1)))
             }
         }
@@ -109,7 +121,7 @@ struct StreakLabel: View {
     var body: some View {
         Label("\(streak)", systemImage: "flame.fill")
             .font(.system(size: 13, weight: .semibold))
-            .foregroundStyle(streak > 0 ? .orange : muted)
+            .foregroundStyle(streak > 0 ? Theme.flame : muted)
             .labelStyle(.titleAndIcon)
     }
 }
@@ -122,7 +134,7 @@ struct SmallView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
-                Text("Today").font(.system(size: 13, weight: .semibold)).foregroundStyle(muted)
+                Text("Today").font(.system(size: 13, weight: .semibold)).foregroundStyle(accent)
                 Spacer()
                 StreakLabel(streak: entry.snapshot.streak)
             }
@@ -145,7 +157,7 @@ struct MediumView: View {
             Link(destination: URL(string: "reading://")!) { SmallView(entry: entry) }
             VStack(alignment: .leading, spacing: 6) {
                 if let book = s.book {
-                    Text("Reading").font(.system(size: 13, weight: .semibold)).foregroundStyle(muted)
+                    Text("Reading").font(.system(size: 13, weight: .semibold)).foregroundStyle(accent)
                     Text(book.title)
                         .font(.system(size: 15, weight: .semibold, design: .serif))
                         .lineLimit(3)
@@ -155,7 +167,7 @@ struct MediumView: View {
                     Text("\(Int((book.progress * 100).rounded()))% read")
                         .font(.system(size: 11, weight: .medium)).foregroundStyle(muted)
                 } else {
-                    Text("This month").font(.system(size: 13, weight: .semibold)).foregroundStyle(muted)
+                    Text("This month").font(.system(size: 13, weight: .semibold)).foregroundStyle(accent)
                     BigDuration(seconds: s.month, size: 30)
                     Spacer()
                 }
@@ -223,10 +235,10 @@ struct ReadingWidget: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: "ReadingWidget", provider: Provider()) { entry in
             ReadingWidgetView(entry: entry)
-                .foregroundStyle(.white)
-                .containerBackground(for: .widget) { Color(white: 0.07) }
+                .foregroundStyle(Theme.text)
+                .containerBackground(for: .widget) { Theme.cloth }
         }
-        .configurationDisplayName("Reading")
+        .configurationDisplayName("Readstreak")
         .description("Today's reading time, streak and current book.")
         .supportedFamilies([.systemSmall, .systemMedium, .accessoryCircular, .accessoryRectangular, .accessoryInline])
     }

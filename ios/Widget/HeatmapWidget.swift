@@ -1,14 +1,7 @@
 import SwiftUI
 import WidgetKit
 
-/// GitHub-style grid of daily reading: one column per week, Monday at the top.
-private let levels: [Color] = [
-    Color(red: 0x2C / 255, green: 0x2C / 255, blue: 0x2A / 255),
-    Color(red: 0x10 / 255, green: 0x42 / 255, blue: 0x81 / 255),
-    Color(red: 0x1C / 255, green: 0x5C / 255, blue: 0xAB / 255),
-    Color(red: 0x39 / 255, green: 0x87 / 255, blue: 0xE5 / 255),
-    Color(red: 0x86 / 255, green: 0xB6 / 255, blue: 0xEF / 255),
-]
+/// Daily reading as cross stitch: one column per week, Monday at the top.
 
 private func level(_ seconds: Int) -> Int {
     switch seconds {
@@ -31,9 +24,31 @@ private func weeks(_ days: [Int], ending today: Date = .now) -> [[Int?]] {
     return stride(from: 0, to: cells.count, by: 7).map { Array(cells[$0..<$0 + 7]) }
 }
 
+/// Stitches rendered by the landing page's shader (Assets: Stitch1...4), one per reading level, dull to vivid amber.
+/// Each image is the stitch plus a margin for its shadow, a sixth of the cell on every side.
+func stitchImage(_ level: Int) -> Image { Image("Stitch\(level)") }
+let stitchMargin: CGFloat = 16.0 / 96.0
+
+/// The holes of the aida cloth over a cols x rows area, so empty cells still read as cloth waiting for thread.
+func drawHoles(_ ctx: GraphicsContext, cols: Int, rows: Int, cell: CGFloat) {
+    let r = cell * 0.07
+    for c in 0...cols {
+        for row in 0...rows {
+            ctx.fill(Path(ellipseIn: CGRect(x: CGFloat(c) * cell - r, y: CGFloat(row) * cell - r, width: 2 * r, height: 2 * r)),
+                     with: .color(.black.opacity(0.3)))
+        }
+    }
+}
+
+/// One stitch image in the cell at (col, row), drawn a little larger so its shadow fits.
+func drawStitch(_ ctx: GraphicsContext, _ stitch: GraphicsContext.ResolvedImage, col: Int, row: Int, cell: CGFloat) {
+    let m = cell * stitchMargin
+    ctx.draw(stitch, in: CGRect(x: CGFloat(col) * cell - m, y: CGFloat(row) * cell - m, width: cell + 2 * m, height: cell + 2 * m))
+}
+
+/// The calendar stitched straight onto the cloth, cell against cell like real cross stitch.
 struct HeatGrid: View {
     let days: [Int]
-    var gap: CGFloat = 3
     /// Show every week, sized to the width; otherwise fill the height and show the weeks that fit.
     var allWeeks = false
 
@@ -42,31 +57,32 @@ struct HeatGrid: View {
         if allWeeks {
             let n = CGFloat(all.count)
             GeometryReader { geo in
-                grid(all, cell: (geo.size.width - gap * (n - 1)) / n)
+                grid(all, cell: min(geo.size.width / n, geo.size.height / 7))
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
-            .aspectRatio((n * 10 + (n - 1) * gap) / (70 + 6 * gap), contentMode: .fit)
+            .aspectRatio(n / 7, contentMode: .fit)
         } else {
             GeometryReader { geo in
-                let cell = (geo.size.height - gap * 6) / 7
-                let fit = max(1, Int((geo.size.width + gap) / (cell + gap)))
+                let cell = geo.size.height / 7
+                let fit = max(1, Int(geo.size.width / cell))
                 grid(Array(all.suffix(fit)), cell: cell)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .trailing)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
     }
 
     private func grid(_ shown: [[Int?]], cell: CGFloat) -> some View {
-        HStack(alignment: .top, spacing: gap) {
-            ForEach(Array(shown.enumerated()), id: \.offset) { _, week in
-                VStack(spacing: gap) {
-                    ForEach(0..<7, id: \.self) { d in
-                        RoundedRectangle(cornerRadius: cell * 0.22)
-                            .fill(week[d].map { levels[level($0)] } ?? .clear)
-                            .frame(width: cell, height: cell)
-                    }
+        Canvas { ctx, _ in
+            let stitches = (1...4).map { ctx.resolve(stitchImage($0)) }
+            drawHoles(ctx, cols: shown.count, rows: 7, cell: cell)
+            for (w, week) in shown.enumerated() {
+                for d in 0..<7 {
+                    guard let seconds = week[d], level(seconds) > 0 else { continue }
+                    drawStitch(ctx, stitches[level(seconds) - 1], col: w, row: d, cell: cell)
                 }
             }
         }
+        .frame(width: CGFloat(shown.count) * cell, height: 7 * cell)
     }
 }
 
@@ -81,22 +97,22 @@ struct HeatmapView: View {
         VStack(alignment: .leading, spacing: family == .systemSmall ? 8 : 10) {
             HStack(alignment: .firstTextBaseline) {
                 if family == .systemSmall {
-                    Text(Format.durationText(s.today)).font(.system(size: 15, weight: .bold)).monospacedDigit()
+                    Text(Format.durationText(s.today)).font(.system(size: 16, weight: .semibold, design: .serif)).monospacedDigit()
                 } else {
-                    Text("Reading").font(.system(size: 15, weight: .semibold))
+                    Text("Reading").font(.system(size: 16, weight: .semibold, design: .serif))
                     Text("\(readDays) days in 26 weeks")
-                        .font(.system(size: 12)).foregroundStyle(Color(white: 0.56))
+                        .font(.system(size: 12)).foregroundStyle(Theme.muted)
                 }
                 Spacer()
                 Label("\(s.streak)", systemImage: "flame.fill")
                     .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(s.streak > 0 ? .orange : Color(white: 0.56))
+                    .foregroundStyle(s.streak > 0 ? Theme.flame : Theme.muted)
             }
             if family == .systemSmall {
                 HeatGrid(days: days)
             } else {
                 Spacer(minLength: 0)
-                HeatGrid(days: days, gap: 3, allWeeks: true)
+                HeatGrid(days: days, allWeeks: true)
                 Spacer(minLength: 0)
             }
             if family == .systemLarge {
@@ -106,15 +122,15 @@ struct HeatmapView: View {
                     stat(Format.durationText(s.month), "this month")
                 }
                 if let book = s.book {
-                    Divider().overlay(Color(white: 0.2))
+                    Divider().overlay(Theme.surface)
                     VStack(alignment: .leading, spacing: 6) {
                         HStack(alignment: .firstTextBaseline) {
                             Text(book.title).font(.system(size: 16, weight: .semibold, design: .serif)).lineLimit(1)
                             Spacer()
                             Text("\(Int((book.progress * 100).rounded()))%")
-                                .font(.system(size: 13, weight: .semibold)).foregroundStyle(Color(white: 0.56))
+                                .font(.system(size: 13, weight: .semibold)).foregroundStyle(Theme.muted)
                         }
-                        Text(book.authors).font(.system(size: 12)).foregroundStyle(Color(white: 0.56)).lineLimit(1)
+                        Text(book.authors).font(.system(size: 12)).foregroundStyle(Theme.muted).lineLimit(1)
                         ProgressBar(value: book.progress)
                     }
                 }
@@ -124,8 +140,8 @@ struct HeatmapView: View {
 
     private func stat(_ value: String, _ label: String) -> some View {
         VStack(alignment: .leading, spacing: 1) {
-            Text(value).font(.system(size: 17, weight: .bold)).monospacedDigit()
-            Text(label).font(.system(size: 12)).foregroundStyle(Color(white: 0.56))
+            Text(value).font(.system(size: 18, weight: .semibold, design: .serif)).monospacedDigit().foregroundStyle(Theme.cream)
+            Text(label).font(.system(size: 12)).foregroundStyle(Theme.muted)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -135,11 +151,11 @@ struct HeatmapWidget: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: "ReadingHeatmap", provider: Provider()) { entry in
             HeatmapView(entry: entry)
-                .foregroundStyle(.white)
-                .containerBackground(for: .widget) { Color(white: 0.07) }
+                .foregroundStyle(Theme.text)
+                .containerBackground(for: .widget) { Theme.cloth }
         }
         .configurationDisplayName("Reading calendar")
-        .description("Every day you read, like a GitHub contribution graph.")
+        .description("Every day you read, one cross stitch per day.")
         .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
     }
 }

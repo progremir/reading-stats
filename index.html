@@ -3,27 +3,32 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#000000">
+<meta name="theme-color" content="#141D36">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
-<meta name="apple-mobile-web-app-title" content="Reading">
-<title>Reading</title>
+<link rel="apple-touch-icon" href="/owl.png">
+<meta name="apple-mobile-web-app-title" content="Readstreak">
+<title>Readstreak</title>
 <style>
   :root {
     color-scheme: dark;
-    --bg: #000000;
-    --surface-1: #1a1a19;
-    --surface-2: #262624;
-    --text-primary: #f0efec;
-    --text-secondary: #c3c2b7;
-    --text-muted: #8f8e86;
-    --series-1: #3987e5;
-    --seq-0: #2c2c2a;
-    --seq-1: #104281;
-    --seq-2: #1c5cab;
-    --seq-3: #3987e5;
-    --seq-4: #86b6ef;
-    --grid: #333331;
+    /* night blue cloth and cotton floss, as on the landing page */
+    --bg: #141D36;
+    --surface-1: #1A2546;
+    --surface-2: #24325C;
+    --text-primary: #F4EBDD;
+    --text-secondary: #C9CCD8;
+    --text-muted: #8E95AD;
+    --series-1: #E0A15E;
+    --ink: #1C2A50;
+    --stitch: rgba(244, 235, 221, .26);
+    --seq-0: #24325C;
+    --seq-1: #75685E;
+    --seq-2: #A87D55;
+    --seq-3: #DC9145;
+    --seq-4: #FFA832;
+    --grid: #2C3A62;
+    --serif: ui-serif, "New York", Georgia, serif;
     --nav-h: 58px;
   }
   * { box-sizing: border-box; }
@@ -38,16 +43,16 @@
     overflow-wrap: anywhere; /* long titles, author lists and chapter names wrap instead of widening the page */
   }
   a { color: inherit; text-decoration: none; }
-  h1 { font-size: 30px; font-weight: 700; letter-spacing: -.01em; margin: 8px 0 2px; }
+  h1 { font-family: var(--serif); font-size: 32px; font-weight: 600; letter-spacing: -.01em; margin: 8px 0 2px; }
   h2 { font-size: 13px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase;
-       color: var(--text-muted); margin: 28px 0 10px; }
+       color: var(--series-1); margin: 28px 0 10px; }
   .sub { color: var(--text-muted); font-size: 13px; }
   .empty { color: var(--text-secondary); margin-top: 40px; font-size: 17px; }
 
   /* bottom navigation */
   nav.tabs {
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 10;
-    background: rgba(18,18,17,.92); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px);
+    background: rgba(20,29,54,.92); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px);
     border-top: 1px solid var(--grid);
     padding-bottom: env(safe-area-inset-bottom);
     display: flex; justify-content: center;
@@ -57,20 +62,20 @@
     display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
     color: var(--text-muted); font-size: 11px; font-weight: 500;
   }
-  nav.tabs a.on { color: var(--text-primary); }
+  nav.tabs a.on { color: var(--series-1); }
   nav.tabs svg { width: 24px; height: 24px; }
 
   /* home */
   .hero .label { color: var(--text-secondary); font-size: 15px; }
-  .hero .big { font-size: 64px; font-weight: 700; line-height: 1.05; letter-spacing: -.02em;
+  .hero .big { font-family: var(--serif); font-size: 68px; font-weight: 600; line-height: 1.05; letter-spacing: -.02em;
                font-variant-numeric: tabular-nums; }
-  .hero .big small { font-size: 24px; font-weight: 600; color: var(--text-secondary); margin-left: 4px; }
+  .hero .big small { font-family: -apple-system, system-ui, sans-serif; font-size: 22px; font-weight: 600; color: var(--text-secondary); margin-left: 6px; }
   .tiles { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
-  .tile { background: var(--surface-1); border-radius: 14px; padding: 14px; }
-  .tile .v { font-size: 30px; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.1; }
-  .tile .v small { font-size: 15px; color: var(--text-secondary); font-weight: 600; margin-left: 2px; }
+  .tile { position: relative; background: var(--surface-1); border-radius: 14px; padding: 16px; }
+  .tile .v { font-family: var(--serif); font-size: 30px; font-weight: 600; font-variant-numeric: tabular-nums; line-height: 1.1; color: #F8E4BF; }
+  .tile .v small { font-family: -apple-system, system-ui, sans-serif; font-size: 15px; color: var(--text-secondary); font-weight: 600; margin-left: 3px; }
   .tile .k { color: var(--text-secondary); font-size: 14px; margin-top: 2px; }
-  .card { background: var(--surface-1); border-radius: 14px; padding: 14px; position: relative; }
+  .card { background: var(--surface-1); border-radius: 14px; padding: 16px; position: relative; }
   svg { display: block; width: 100%; height: auto; overflow: visible; }
   .axis { fill: var(--text-muted); font-size: 11px; }
   .tip { position: absolute; pointer-events: none; background: var(--surface-2); color: var(--text-primary);
@@ -84,7 +89,7 @@
   .seg { display: flex; gap: 6px; margin-bottom: 10px; }
   .seg button { flex: 1; background: var(--surface-2); color: var(--text-secondary); border: 0;
                 border-radius: 10px; padding: 9px 0; font: inherit; font-size: 14px; }
-  .seg button.on { background: var(--text-primary); color: #000; font-weight: 600; }
+  .seg button.on { background: var(--series-1); color: var(--ink); font-weight: 600; }
   .now { display: flex; gap: 14px; align-items: center; }
   .now .cover { width: 72px; flex: none; }
   .now .info { flex: 1; min-width: 0; }
@@ -139,7 +144,7 @@
                 color: var(--text-primary); border: 1px solid var(--grid); border-radius: 12px; padding: 0 14px;
                 font: inherit; font-size: 15px; }
   .filter-btn svg { width: 18px; height: 18px; }
-  .badge { background: var(--series-1); color: #fff; border-radius: 999px; min-width: 20px; height: 20px; padding: 0 6px;
+  .badge { background: var(--series-1); color: var(--ink); border-radius: 999px; min-width: 20px; height: 20px; padding: 0 6px;
            font-size: 12px; font-weight: 600; display: inline-grid; place-items: center; }
   .chip.active { display: inline-flex; align-items: center; gap: 8px; max-width: 70vw; color: var(--text-primary); }
   .chip.active i { font-style: normal; color: var(--text-muted); }
@@ -154,7 +159,7 @@
   .sheet .opts { display: flex; flex-wrap: wrap; gap: 8px; }
   .select { width: 100%; background: var(--surface-2); color: var(--text-primary); border: 0; border-radius: 10px;
             padding: 10px 12px; font: inherit; font-size: 16px; }
-  .done { width: 100%; margin-top: 22px; background: var(--text-primary); color: #000; border: 0; border-radius: 12px;
+  .done { position: relative; width: 100%; margin-top: 22px; background: var(--series-1); color: var(--ink); border: 0; border-radius: 999px;
           padding: 13px; font: inherit; font-size: 16px; font-weight: 600; }
   .search { width: 100%; background: var(--surface-1); color: var(--text-primary); border: 1px solid var(--grid);
             border-radius: 12px; padding: 11px 14px; font: inherit; font-size: 16px; }
@@ -162,8 +167,8 @@
   .chips::-webkit-scrollbar { display: none; }
   .chip { flex: none; background: var(--surface-2); color: var(--text-secondary); border: 0; border-radius: 999px;
           padding: 7px 14px; font: inherit; font-size: 14px; }
-  .chip.on { background: var(--text-primary); color: #000; font-weight: 600; }
-  .group { background: var(--surface-1); border-radius: 14px; margin-bottom: 12px; overflow: hidden; }
+  .chip.on { background: var(--series-1); color: var(--ink); font-weight: 600; }
+  .group { position: relative; background: var(--surface-1); border-radius: 14px; margin-bottom: 12px; overflow: hidden; }
   .group > summary { list-style: none; padding: 12px 14px; display: flex; gap: 12px; align-items: center; cursor: pointer; }
   .group > summary::-webkit-details-marker { display: none; }
   .group > summary .cover { width: 36px; flex: none; }
@@ -173,27 +178,27 @@
              letter-spacing: .04em; text-transform: uppercase; }
   .hl { border-top: 1px solid var(--grid); padding: 12px 14px; }
   .chapter + .hl { border-top: 0; }
-  .hl q { display: block; quotes: none; font-family: Georgia, "New York", serif; font-size: 17px; line-height: 1.5; }
+  .hl q { display: block; quotes: none; font-family: var(--serif); font-size: 17px; line-height: 1.5; }
   .hl .note { margin-top: 8px; padding-left: 10px; border-left: 2px solid var(--series-1); color: var(--text-secondary); font-size: 15px; }
   .hl .meta { margin-top: 6px; color: var(--text-muted); font-size: 13px; }
   .hl .meta a { color: var(--text-secondary); }
-  mark { background: #3987e555; color: inherit; border-radius: 2px; }
+  mark { background: #E0A15E55; color: inherit; border-radius: 2px; }
   .words { display: flex; flex-wrap: wrap; gap: 8px; padding: 14px; }
   .word { background: var(--surface-2); border-radius: 8px; padding: 6px 10px; font-family: Georgia, "New York", serif;
           font-size: 15px; }
-  .quote { background: var(--surface-1); border-radius: 14px; padding: 18px; }
+  .quote { position: relative; background: var(--surface-1); border-radius: 14px; padding: 22px; }
   .quote .note { padding-left: 10px; border-left: 2px solid var(--series-1); color: var(--text-secondary); font-size: 15px; }
-  .quote q { display: block; quotes: none; font-family: Georgia, "New York", serif; font-size: 20px; line-height: 1.45; }
+  .quote q { display: block; quotes: none; font-family: var(--serif); font-size: 20px; line-height: 1.45; }
   .quote .src { display: flex; gap: 10px; align-items: center; margin-top: 14px; }
   .quote .src .cover { width: 30px; flex: none; }
   .quote .src > div { min-width: 0; }
 
   /* send to e-reader */
   .sheet p { color: var(--text-secondary); font-size: 15px; margin: 8px 0 0; }
-  .drop { display: block; margin-top: 16px; border: 1.5px dashed var(--grid); border-radius: 14px; padding: 26px 14px;
+  .drop { display: block; margin-top: 16px; border: 1.5px dashed var(--stitch); border-radius: 14px; padding: 26px 14px;
           text-align: center; color: var(--text-secondary); font-size: 15px; cursor: pointer; }
   .drop b { display: block; color: var(--text-primary); font-size: 16px; margin-bottom: 2px; }
-  .drop.over { border-color: var(--series-1); background: #3987e514; }
+  .drop.over { border-color: var(--series-1); background: #E0A15E14; }
   .drop input { display: none; }
   .file { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-top: 1px solid var(--grid); }
   .file:first-child { border-top: 0; }
@@ -203,6 +208,14 @@
   .file .bar { height: 3px; margin-top: 6px; }
   .file .x { flex: none; background: none; border: 0; color: var(--text-muted); font: inherit; font-size: 22px;
              line-height: 1; padding: 4px 6px; }
+
+  /* the 26 week calendar, cross stitched on night blue cloth */
+  .hoop { border-radius: 14px; overflow: hidden; background: #1C2A50; }
+  .hoop .linen { position: relative; }
+  .hoop canvas { display: block; width: 100%; }
+  .hoop .no-gl { display: none; }
+  .hoop + .legend i { border-radius: 2px; }
+  .scale { display: flex; justify-content: space-between; gap: 8px; color: var(--text-muted); font-size: 12px; margin-top: 8px; }
 </style>
 </head>
 <body>
@@ -398,7 +411,7 @@ function byChapterHTML(items, terms) {
 function viewHome() {
   const st = DATA.stats;
   if (st.empty) {
-    return `<h1>Reading</h1><div class="empty">No reading stats yet. They appear after the Kindle's first sync.</div>`;
+    return `<h1>Readstreak</h1><div class="empty">No reading stats yet. They appear after your e-reader's first sync.</div>`;
   }
   const reading = DATA.books.find(b => b.last_open && !b.finished && b.seconds > 0);
   const all = allHighlights().filter(h => !isWord(h));
@@ -432,9 +445,11 @@ function viewHome() {
     </div>
     <h2>Last 30 days</h2>
     <div class="seg" id="metric"><button data-m="time" class="on">Time</button><button data-m="pages">Pages</button></div>
-    <div class="card" id="bars"></div>
+    <div class="hoop" id="bars" style="position:relative"><div class="linen"></div></div>
+    <div class="scale" id="bars-scale"></div>
     <h2>26 weeks</h2>
-    <div class="card" id="heat"></div>
+    <div class="hoop" id="heat" style="position:relative"><div class="linen"></div></div>
+    <div class="legend">less <i style="background:#1C2A50"></i>${STITCH_THREADS.slice(1).map(c => `<i style="background:${c}"></i>`).join("")} more</div>
     ${pick ? `<h2>From your highlights</h2>
     <div class="quote"><q>${esc(pick.text)}</q>
       ${pick.note ? `<div class="note" style="margin-top:12px">${esc(pick.note)}</div>` : ""}
@@ -446,12 +461,108 @@ function viewHome() {
 function mountHome() {
   if (DATA.stats.empty) return;
   const last30 = DATA.stats.days.slice(-30), bars = document.getElementById("bars");
-  barChart(bars, last30, "time");
+  stitchedBars(bars, last30, "time");
   document.querySelectorAll("#metric button").forEach(btn => btn.addEventListener("click", () => {
     document.querySelectorAll("#metric button").forEach(b => b.classList.toggle("on", b === btn));
-    barChart(bars, last30, btn.dataset.m);
+    stitchedBars(bars, last30, btn.dataset.m);
   }));
-  heatmap(document.getElementById("heat"), DATA.stats.days);
+  sampler(document.getElementById("heat"), DATA.stats.days);
+}
+
+// The charts on Today are cross stitch on night blue cloth, with the same threads as the widgets and the landing page:
+// dull to vivid amber, more vivid for more reading.
+const STITCH_THREADS = ["", "#75685E", "#A87D55", "#DC9145", "#FFA832"];
+const readLevel = s => s < 60 ? 0 : s < 900 ? 1 : s < 1800 ? 2 : s < 3600 ? 3 : 4;
+
+let embroideryLib = null;
+const loadEmbroidery = () => embroideryLib ||= import("/embroidery.js").catch(() => null);
+
+// One canvas per chart, kept across renders: WebGL contexts are costly and browsers cap how many a page holds.
+// mount() resolves false when there is no WebGL, so the caller can draw the flat chart instead.
+function stitchedCanvas(build) {
+  const piece = {canvas: document.createElement("canvas"), cols: 1, rows: 1, api: undefined};
+  piece.mount = async parent => {
+    if (piece.api === undefined) {
+      const lib = await loadEmbroidery();
+      piece.api ??= (lib && lib.embroider(piece.canvas, {
+        cell: w => w / piece.cols, fabric: [28, 42, 80], sweep: 1.4, build: ctx => build(ctx, lib.plot)})) || null;
+    }
+    if (!piece.api || !parent.isConnected) return false;
+    piece.canvas.style.aspectRatio = `${piece.cols} / ${piece.rows}`;
+    parent.appendChild(piece.canvas);
+    piece.api.relayout();
+    return true;
+  };
+  return piece;
+}
+
+// The 26 weeks, one stitch per day, Monday at the top.
+const calendar = stitchedCanvas((ctx, plot) => {
+  calendar.days.forEach((d, i) => {
+    const l = readLevel(d.seconds), j = i + calendar.lead;
+    if (l) plot(ctx, 1 + Math.floor(j / 7), 1 + j % 7, STITCH_THREADS[l]);
+  });
+});
+
+async function sampler(hoop, days) {
+  const lead = (new Date(days[0].date + "T12:00:00").getDay() + 6) % 7;  // Monday-first rows
+  Object.assign(calendar, {days, lead, cols: Math.ceil((lead + days.length) / 7) + 2, rows: 9});
+  if (!await calendar.mount(hoop.querySelector(".linen"))) {
+    if (!hoop.isConnected) return;
+    hoop.className = "card";
+    hoop.innerHTML = "";
+    return heatmap(hoop, days);
+  }
+  const show = tipFor(hoop), canvas = calendar.canvas;
+  canvas.onpointerdown = e => {
+    const r = canvas.getBoundingClientRect(), cell = r.width / calendar.cols;
+    const col = Math.floor((e.clientX - r.left) / cell) - 1, row = Math.floor((e.clientY - r.top) / cell) - 1;
+    const d = row >= 0 && row < 7 && days[col * 7 + row - lead];
+    if (!d) return;
+    const hr = hoop.getBoundingClientRect();
+    show(r.left + (col + 1.5) * cell - hr.left, r.top + (row + 1) * cell - hr.top, `${dayLabel(d.date)} · <b>${durText(d.seconds)}</b>`);
+  };
+}
+
+// The last 30 days as columns of cross stitch, one stitch wide: side by side on a phone so the stitches stay
+// big enough to read, with a gap between days where there is room. Each stitch is a round number of minutes
+// or pages, chosen so the longest day fits in BAR_ROWS; today is in the most vivid thread.
+const BAR_ROWS = 12;
+const STITCH_UNITS = {time: [5, 10, 15, 20, 30, 45, 60, 90, 120], pages: [1, 2, 3, 5, 10, 15, 20, 25, 50, 100, 200]};
+const dayBars = stitchedCanvas((ctx, plot) => {
+  dayBars.heights.forEach((h, i) => {
+    const thread = i === dayBars.heights.length - 1 ? STITCH_THREADS[4] : STITCH_THREADS[2];
+    for (let k = 0; k < h; k++) plot(ctx, 1 + dayBars.step * i, dayBars.rows - 2 - k, thread);
+  });
+});
+
+async function stitchedBars(hoop, days, metric) {
+  const vals = days.map(d => metric === "time" ? d.seconds / 60 : d.pages);
+  const units = STITCH_UNITS[metric], top = Math.max(...vals);
+  const unit = units.find(u => u * BAR_ROWS >= top) || units[units.length - 1];
+  const heights = vals.map(v => v > 0 ? Math.min(BAR_ROWS, Math.max(1, Math.round(v / unit))) : 0);
+  const step = hoop.clientWidth >= 480 ? 2 : 1;
+  Object.assign(dayBars, {heights, step, cols: step * (days.length - 1) + 3, rows: BAR_ROWS + 2});
+  const fmt = iso => new Date(iso + "T12:00:00").toLocaleDateString(undefined, {month: "short", day: "numeric"});
+  document.getElementById("bars-scale").innerHTML =
+    `<span>${fmt(days[0].date)}</span><span>One stitch is ${unit} ${metric === "time" ? "min" : unit === 1 ? "page" : "pages"}</span><span>Today</span>`;
+  if (!await dayBars.mount(hoop.querySelector(".linen"))) {
+    if (!hoop.isConnected) return;
+    hoop.className = "card";
+    hoop.querySelector(".linen")?.remove();
+    document.getElementById("bars-scale").remove();
+    return barChart(hoop, days, metric);
+  }
+  const show = tipFor(hoop), canvas = dayBars.canvas;
+  hoop.querySelectorAll(".tip").forEach((t, i, all) => i < all.length - 1 && t.remove());  // one tip after a metric switch
+  canvas.onpointerdown = e => {
+    const r = canvas.getBoundingClientRect(), cell = r.width / dayBars.cols;
+    const i = Math.round((Math.floor((e.clientX - r.left) / cell) - 1) / step), d = days[i];
+    if (!d) return;
+    const hr = hoop.getBoundingClientRect();
+    show(r.left + (1 + step * i + .5) * cell - hr.left, r.top + (dayBars.rows - 1 - Math.max(1, heights[i])) * cell - hr.top,
+      `${dayLabel(d.date)} · <b>${durText(d.seconds)}</b> · ${d.pages} pages`);
+  };
 }
 
 const BOOK_FILTERS = {

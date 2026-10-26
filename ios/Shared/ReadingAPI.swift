@@ -32,7 +32,7 @@ struct ReadingSnapshot: Codable, Sendable {
 nonisolated(unsafe) private let groupDefaults = UserDefaults(
     suiteName: Bundle.main.object(forInfoDictionaryKey: "ReadingAppGroup") as? String)
 
-/// The reading-stats server this phone uses, chosen in the app and shared with the widgets.
+/// The Readstreak server this phone uses, chosen in the app and shared with the widgets.
 enum ServerStore {
     private static var defaults: UserDefaults? { groupDefaults }
 
@@ -61,7 +61,7 @@ enum ServerStore {
         }
     }
 
-    /// True when the address answers like a reading-stats server.
+    /// True when the address answers like a Readstreak server.
     static func check(_ url: URL) async -> Bool {
         var request = URLRequest(url: url.appending(path: "healthz"))
         request.cachePolicy = .reloadIgnoringLocalCacheData

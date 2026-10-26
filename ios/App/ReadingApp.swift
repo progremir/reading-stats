@@ -3,7 +3,7 @@ import WebKit
 import WidgetKit
 
 /// The app is the reading site in a web view; it also hosts the widget. It asks which server to use
-/// the first time, so one build fits every reading-stats server.
+/// the first time, so one build fits every Readstreak server.
 @main
 struct ReadingApp: App {
     @Environment(\.scenePhase) private var scenePhase
@@ -29,7 +29,7 @@ struct ReadingApp: App {
                     ServerView { server = $0 }
                 }
             }
-            .background(Color.black)
+            .background(Theme.page)
             .preferredColorScheme(.dark)
             // reading://book/<id> from the widget opens that book's page.
             .onOpenURL { url in
@@ -50,7 +50,7 @@ struct ReadingApp: App {
     }
 }
 
-/// First launch: the address of the reading-stats server, checked against its /healthz.
+/// First launch: the address of the Readstreak server, checked against its /healthz.
 struct ServerView: View {
     let done: (URL) -> Void
     @State private var address = ""
@@ -60,20 +60,26 @@ struct ServerView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             Spacer()
-            Image(systemName: "book.closed")
-                .font(.system(size: 28))
-                .frame(width: 56, height: 56)
-                .background(Color(white: 0.1), in: RoundedRectangle(cornerRadius: 14))
-            Text("Reading")
-                .font(.largeTitle.bold())
+            // the owl as a sewn on badge: tan ring, cream running stitch
+            Image("Owl")
+                .resizable()
+                .scaledToFill()
+                .frame(width: 64, height: 64)
+                .clipShape(Circle())
+                .padding(4)
+                .background(Theme.tan, in: Circle())
+                .overlay(Circle().inset(by: 7).stroke(Theme.cream.opacity(0.75), style: Theme.runningStitch))
+            Text("Readstreak")
+                .font(.system(size: 36, weight: .semibold, design: .serif))
+                .foregroundStyle(Theme.text)
                 .padding(.top, 24)
-            Text("Enter the address of your reading-stats server.")
-                .foregroundStyle(.secondary)
+            Text("Enter the address of your Readstreak server.")
+                .foregroundStyle(Theme.muted)
                 .padding(.top, 8)
             Text("SERVER ADDRESS")
                 .font(.footnote.weight(.semibold))
                 .tracking(1)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Theme.tan)
                 .padding(.top, 32)
             TextField("read.example.com", text: $address)
                 .keyboardType(.URL)
@@ -83,23 +89,24 @@ struct ServerView: View {
                 .submitLabel(.go)
                 .onSubmit(connect)
                 .padding(16)
-                .background(Color(white: 0.11), in: RoundedRectangle(cornerRadius: 14))
-                .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color(white: 0.2)))
+                .background(Theme.surface, in: RoundedRectangle(cornerRadius: 14))
+                .overlay(RoundedRectangle(cornerRadius: 14).inset(by: 4).stroke(Theme.stitch, style: Theme.runningStitch))
                 .padding(.top, 8)
             if let error {
                 Text(error)
                     .font(.footnote)
-                    .foregroundStyle(.red)
+                    .foregroundStyle(Color(hex: 0xF08A7E))
                     .padding(.top, 8)
             }
             Button(action: connect) {
                 Group {
-                    if checking { ProgressView().tint(.black) } else { Text("Continue") }
+                    if checking { ProgressView().tint(Theme.ink) } else { Text("Continue") }
                 }
                 .font(.headline)
                 .frame(maxWidth: .infinity, minHeight: 52)
-                .foregroundStyle(.black)
-                .background(Color(white: 0.94), in: RoundedRectangle(cornerRadius: 14))
+                .foregroundStyle(Theme.ink)
+                .background(Theme.tan, in: Capsule())
+                .overlay(Capsule().inset(by: 4).stroke(Theme.ink.opacity(0.45), style: Theme.runningStitch))
             }
             .disabled(checking || address.isEmpty)
             .padding(.top, 24)
@@ -107,6 +114,8 @@ struct ServerView: View {
             Spacer()
         }
         .padding(.horizontal, 28)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Theme.page)
     }
 
     private func connect() {
@@ -125,7 +134,7 @@ struct ServerView: View {
                 return
             }
             checking = false
-            error = "No reading-stats server answered at \(first.host() ?? address)."
+            error = "No Readstreak server answered at \(first.host() ?? address)."
         }
     }
 }
@@ -142,14 +151,14 @@ struct WebView: UIViewRepresentable {
         config.websiteDataStore = .default()  // keeps the sign-in cookie between launches
         let web = WKWebView(frame: .zero, configuration: config)
         web.isOpaque = false
-        web.backgroundColor = .black
-        web.scrollView.backgroundColor = .black
+        web.backgroundColor = UIColor(Theme.page)
+        web.scrollView.backgroundColor = UIColor(Theme.page)
         web.scrollView.contentInsetAdjustmentBehavior = .never  // the page pads for the safe area itself
         web.allowsBackForwardNavigationGestures = true
         web.navigationDelegate = context.coordinator
 
         let refresh = UIRefreshControl()
-        refresh.tintColor = .lightGray
+        refresh.tintColor = UIColor(Theme.tan)
         refresh.addTarget(context.coordinator, action: #selector(Coordinator.reload(_:)), for: .valueChanged)
         web.scrollView.refreshControl = refresh
         context.coordinator.web = web

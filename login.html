@@ -3,23 +3,28 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#000000">
+<meta name="theme-color" content="#141D36">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
-<meta name="apple-mobile-web-app-title" content="Reading">
-<title>Sign in · Reading</title>
+<link rel="apple-touch-icon" href="/owl.png">
+<meta name="apple-mobile-web-app-title" content="Readstreak">
+<title>Sign in · Readstreak</title>
 <style>
   :root {
     color-scheme: dark;
-    --bg: #000000;
-    --surface-1: #1a1a19;
-    --surface-2: #262624;
-    --text-primary: #f0efec;
-    --text-secondary: #c3c2b7;
-    --text-muted: #8f8e86;
-    --accent: #3987e5;
-    --danger: #e5484d;
-    --grid: #333331;
+    /* night blue cloth and cotton floss, as on the landing page */
+    --bg: #141D36;
+    --surface-1: #1A2546;
+    --surface-2: #24325C;
+    --text-primary: #F4EBDD;
+    --text-secondary: #C9CCD8;
+    --text-muted: #8E95AD;
+    --accent: #E0A15E;
+    --ink: #1C2A50;
+    --danger: #F08A7E;
+    --ok: #9BD3A6;
+    --grid: #2C3A62;
+    --serif: ui-serif, "New York", Georgia, serif;
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text-primary); }
@@ -29,9 +34,9 @@
     padding: max(24px, env(safe-area-inset-top)) 16px max(24px, env(safe-area-inset-bottom));
   }
   form { width: 100%; max-width: 360px; }
-  .mark { width: 56px; height: 56px; border-radius: 14px; background: var(--surface-1);
-          display: flex; align-items: center; justify-content: center; margin-bottom: 20px; }
-  .mark svg { width: 30px; height: 30px; }
+  .mark { position: relative; width: 72px; height: 72px; border-radius: 50%; padding: 4px; background: var(--accent);
+          margin-bottom: 20px; }
+  .mark img { width: 100%; height: 100%; border-radius: 50%; display: block; object-fit: cover; }
   h1 { font-size: 30px; font-weight: 700; letter-spacing: -.01em; margin: 0 0 6px; }
   p { color: var(--text-secondary); margin: 0 0 28px; }
   label { display: block; color: var(--text-muted); font-size: 13px; font-weight: 600;
@@ -39,17 +44,23 @@
   input { width: 100%; background: var(--surface-1); color: var(--text-primary); border: 1px solid var(--grid);
           border-radius: 12px; padding: 14px; font: inherit; font-size: 17px; }
   input:focus { outline: none; border-color: var(--accent); }
-  button { width: 100%; margin-top: 26px; background: var(--text-primary); color: #000; border: 0;
-           border-radius: 12px; padding: 15px; font: inherit; font-size: 17px; font-weight: 600; }
+  button { width: 100%; margin-top: 26px; border: 0;
+           border-radius: 999px; padding: 15px; font: inherit; font-size: 17px; font-weight: 600; }
   button:active { opacity: .85; }
   .error { display: none; margin-top: 16px; color: var(--danger); font-size: 15px; }
+  h1 { font-size: 36px; }
   .error.on { display: block; }
+
+  /* landing page details: serif headings, tan headings and primary buttons */
+  h1 { font-family: var(--serif); font-weight: 600; letter-spacing: -.01em; }
+  h2 { color: var(--accent); }
+  button:not(.ghost):not(.danger) { background: var(--accent); color: var(--ink); }
 </style>
 </head>
 <body>
 <form method="post" action="/login">
-  <div class="mark"><svg viewBox="0 0 24 24" fill="none" stroke="#f0efec" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5z"/><path d="M4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5"/></svg></div>
-  <h1>Reading</h1>
+  <div class="mark"><img src="/owl.png" alt=""></div>
+  <h1>Readstreak</h1>
   <p>Sign in to see your stats and highlights.</p>
   <label for="u">Username</label>
   <input id="u" name="username" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" required>

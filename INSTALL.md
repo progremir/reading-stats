@@ -1,6 +1,6 @@
 # Install guide (for an agent)
 
-Follow this top to bottom to set up reading-stats for someone: their e-reader running KOReader
+Follow this top to bottom to set up Readstreak for someone: their e-reader running KOReader
 syncs reading time and highlights to a server they own, viewable on the web and in iPhone widgets.
 One server can hold several readers (a couple, a family), each with their own account. Do step 2
 once per server, and steps 1, 3, 4 and 5 once per reader.
@@ -12,7 +12,7 @@ else you can do yourself. Stop and ask when a step says **Ask**.
 
 **Ask** the user, and write down the answers:
 
-0. Who will use it, and is there already a reading-stats server? One person, or several sharing
+0. Who will use it, and is there already a Readstreak server? One person, or several sharing
    one server? If a server exists, get its URL and an admin's sign-in, and skip to "Adding a
    reader" in step 2. Pick a lowercase username for each extra reader (letters, digits, `_`).
 1. Which e-reader (for each reader)? Kindle, Kobo, PocketBook or Android/Boox. If it's a Kindle: the model and the
@@ -62,7 +62,7 @@ for signing in on the web; e-readers never get them.
 From the repo root:
 
 ```sh
-railway init --name reading-stats          # or link an existing project
+railway init --name readstreak             # or link an existing project
 railway add --service web
 openssl rand -base64 18 | tr -d '/+=' | cut -c1-20 > .password      # git-ignored
 railway variable set --service web --skip-deploys \
@@ -198,7 +198,7 @@ Amazon DRM.
 ## 5. iPhone app and widgets (optional)
 
 Each reader opens https://testflight.apple.com/join/KPEdXnF8 on their iPhone, installs TestFlight
-if asked, then installs Reading Stats. On first launch the app asks for the server address
+if asked, then installs Readstreak. On first launch the app asks for the server address
 (`$SERVER`; `https://` is assumed, and a plain `http://` server on the home network works too),
 then shows the same sign-in as the website. It gets a widget token for that phone from the server
 and shares it with its widgets through an App Group.
@@ -227,8 +227,8 @@ run the same command again.
 Each reader enters the server address, then signs in with their own username. Within a few seconds the phone
 appears under "iPhone widgets" on their account page and the widgets fill in. Signing out
 clears the widgets; signing in as someone else switches them. "Change server" under the sign-in
-form goes back to the address screen. Widgets: "Reading" (today, streak,
-week, current book; Home and Lock Screen) and "Reading calendar" (GitHub-style grid). They
+form goes back to the address screen. Widgets: "Readstreak" (today, streak,
+week, current book; Home and Lock Screen) and "Reading calendar" (one cross stitch per day). They
 refresh about every 30 minutes.
 
 ## 6. Extras the user may want (Kindle, jailbroken)

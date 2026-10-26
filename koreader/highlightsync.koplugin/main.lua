@@ -1,5 +1,5 @@
 --[[--
-Uploads each book's highlights to the reading stats server, and downloads the
+Uploads each book's highlights to the Readstreak server, and downloads the
 books sent to the e-reader from its website.
 
 It reuses the WebDAV server configured for Reading statistics cloud sync and

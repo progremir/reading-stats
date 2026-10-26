@@ -1,9 +1,9 @@
 # Privacy policy
 
-*Reading Stats (the iPhone app) and reading-stats (the server). Last updated 20 October 2026.*
+*Readstreak (the iPhone app and the server). Last updated 20 October 2026.*
 
-Reading Stats shows the reading time, books and highlights that your e-reader syncs to a
-reading-stats server. It has no accounts, analytics, ads or tracking of its own.
+Readstreak shows the reading time, books and highlights that your e-reader syncs to a
+Readstreak server. It has no accounts, analytics, ads or tracking of its own.
 
 ## What the app sends, and where
 
@@ -16,9 +16,9 @@ reading-stats server. It has no accounts, analytics, ads or tracking of its own.
 
 ## Who holds your data
 
-Your reading statistics, highlights and account live on the reading-stats server, and whoever runs
-that server controls them. If you run your own, that's you. reading-stats is open source
-(https://github.com/progremir/reading-stats): the server keeps data on its own storage, stores
+Your reading statistics, highlights and account live on the Readstreak server, and whoever runs
+that server controls them. If you run your own, that's you. Readstreak is open source
+(https://github.com/progremir/readstreak): the server keeps data on its own storage, stores
 passwords only as hashes, and shares it with no one. Each account sees only its own data.
 
 ## Deleting your data
@@ -29,4 +29,4 @@ you. Devices and sessions can be removed from the account page at any time.
 
 ## Contact
 
-Questions: open an issue at https://github.com/progremir/reading-stats/issues.
+Questions: open an issue at https://github.com/progremir/readstreak/issues.
