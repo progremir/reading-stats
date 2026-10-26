@@ -27,7 +27,24 @@ private func weeks(_ days: [Int], ending today: Date = .now) -> [[Int?]] {
 /// Stitches rendered by the landing page's shader (Assets: Stitch1...4), one per reading level, dull to vivid amber.
 /// Each image is the stitch plus a margin for its shadow, a sixth of the cell on every side.
 func stitchImage(_ level: Int) -> Image { Image("Stitch\(level)") }
-private let stitchMargin: CGFloat = 16.0 / 96.0
+let stitchMargin: CGFloat = 16.0 / 96.0
+
+/// The holes of the aida cloth over a cols x rows area, so empty cells still read as cloth waiting for thread.
+func drawHoles(_ ctx: GraphicsContext, cols: Int, rows: Int, cell: CGFloat) {
+    let r = cell * 0.07
+    for c in 0...cols {
+        for row in 0...rows {
+            ctx.fill(Path(ellipseIn: CGRect(x: CGFloat(c) * cell - r, y: CGFloat(row) * cell - r, width: 2 * r, height: 2 * r)),
+                     with: .color(.black.opacity(0.3)))
+        }
+    }
+}
+
+/// One stitch image in the cell at (col, row), drawn a little larger so its shadow fits.
+func drawStitch(_ ctx: GraphicsContext, _ stitch: GraphicsContext.ResolvedImage, col: Int, row: Int, cell: CGFloat) {
+    let m = cell * stitchMargin
+    ctx.draw(stitch, in: CGRect(x: CGFloat(col) * cell - m, y: CGFloat(row) * cell - m, width: cell + 2 * m, height: cell + 2 * m))
+}
 
 /// The calendar stitched straight onto the cloth, cell against cell like real cross stitch.
 struct HeatGrid: View {
@@ -57,20 +74,11 @@ struct HeatGrid: View {
     private func grid(_ shown: [[Int?]], cell: CGFloat) -> some View {
         Canvas { ctx, _ in
             let stitches = (1...4).map { ctx.resolve(stitchImage($0)) }
-            // the holes of the aida cloth, so empty days still read as cloth waiting for thread
-            for w in 0...shown.count {
-                for d in 0...7 {
-                    let r = cell * 0.07
-                    ctx.fill(Path(ellipseIn: CGRect(x: CGFloat(w) * cell - r, y: CGFloat(d) * cell - r, width: 2 * r, height: 2 * r)),
-                             with: .color(.black.opacity(0.3)))
-                }
-            }
+            drawHoles(ctx, cols: shown.count, rows: 7, cell: cell)
             for (w, week) in shown.enumerated() {
                 for d in 0..<7 {
                     guard let seconds = week[d], level(seconds) > 0 else { continue }
-                    let m = cell * stitchMargin
-                    ctx.draw(stitches[level(seconds) - 1],
-                             in: CGRect(x: CGFloat(w) * cell - m, y: CGFloat(d) * cell - m, width: cell + 2 * m, height: cell + 2 * m))
+                    drawStitch(ctx, stitches[level(seconds) - 1], col: w, row: d, cell: cell)
                 }
             }
         }

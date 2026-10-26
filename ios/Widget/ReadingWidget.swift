@@ -73,20 +73,31 @@ struct BigDuration: View {
     }
 }
 
+/// The last seven days as columns of cross stitch, one stitch wide so the stitches stay big enough to read,
+/// filled to the top at 30 minutes or the week's longest day: earlier days in muted tan thread, today in the most vivid one.
 struct WeekBars: View {
     let values: [Int]
+    private let rows = 4
 
     var body: some View {
         let top = max(values.max() ?? 0, 1_800)
-        HStack(alignment: .bottom, spacing: 4) {
-            ForEach(Array(values.enumerated()), id: \.offset) { index, value in
-                RoundedRectangle(cornerRadius: 2.5)
-                    .fill(index == values.count - 1 ? accent : value > 0 ? Color(hex: 0x4E6096) : Theme.surface)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: max(3, CGFloat(value) / CGFloat(top) * 34))
+        let cols = values.count * 2 - 1
+        GeometryReader { geo in
+            let cell = min(geo.size.width / CGFloat(cols), geo.size.height / CGFloat(rows))
+            Canvas { ctx, _ in
+                let earlier = ctx.resolve(stitchImage(2)), today = ctx.resolve(stitchImage(4))
+                drawHoles(ctx, cols: cols, rows: rows, cell: cell)
+                for (i, value) in values.enumerated() where value > 0 {
+                    let height = min(rows, max(1, Int((Double(value) / Double(top) * Double(rows)).rounded())))
+                    for k in 0..<height {
+                        drawStitch(ctx, i == values.count - 1 ? today : earlier, col: 2 * i, row: rows - 1 - k, cell: cell)
+                    }
+                }
             }
+            .frame(width: cell * CGFloat(cols), height: cell * CGFloat(rows))
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
         }
-        .frame(height: 34, alignment: .bottom)
+        .frame(height: 44)
     }
 }
 
