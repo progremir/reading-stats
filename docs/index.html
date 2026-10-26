@@ -1,0 +1,807 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reading Stats · KOReader reading time on your iPhone</title>
+<meta name="description" content="Reading Stats syncs your KOReader reading time, streaks and highlights to a small server you own, and shows them on the web and in iPhone widgets. Free and open source.">
+<meta name="theme-color" content="#141D36">
+<link rel="icon" href="logo.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="owl.png">
+<link rel="canonical" href="https://progremir.github.io/reading-stats/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Reading Stats · KOReader reading time on your iPhone">
+<meta property="og:description" content="Reading time, streaks and highlights from your e reader, on the web and in iPhone widgets. Runs on a server you own.">
+<meta property="og:url" content="https://progremir.github.io/reading-stats/">
+<meta property="og:image" content="https://progremir.github.io/reading-stats/screenshots/today.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Geist:wght@400;500;600&family=Geist+Mono:wght@500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/fill/style.css">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {"@type": "Question", "name": "Which readers does it work with?", "acceptedAnswer": {"@type": "Answer", "text": "Anything that runs KOReader: Kobo, PocketBook, Android readers and jailbroken Kindles. Highlights from the stock Kindle reader come in through My Clippings.txt."}},
+    {"@type": "Question", "name": "Do I really need my own server?", "acceptedAnswer": {"@type": "Answer", "text": "Yes. That is where your data lives. INSTALL.md walks through deploying it to Railway, and it runs anywhere Python 3 does."}},
+    {"@type": "Question", "name": "What does it cost?", "acceptedAnswer": {"@type": "Answer", "text": "Nothing. Reading Stats is MIT licensed. You only pay for whatever hosts your server."}}
+  ]
+}
+</script>
+<style>
+:root {
+  /* night blue cloth and cotton floss, taken from the owl icon */
+  --bg: #141D36;
+  --cloth: #1C2A50;
+  --surface: #192443;
+  --surface-2: #1F2C51;
+  --line: rgba(244, 235, 221, 0.12);
+  --stitch: rgba(244, 235, 221, 0.3);
+  --text: #F4EBDD;
+  --muted: #AEB4C6;
+  --faint: #7C849C;
+  --tan: #E0A15E;
+  --tan-hover: #EAB173;
+  --cream: #F8E4BF;
+  --linen: #EDE3D0;
+  --ink: #1C2A50;
+
+  --s-25: 2px; --s-50: 4px; --s-75: 8px; --s-100: 12px; --s-200: 16px; --s-300: 24px;
+  --s-400: 32px; --s-500: 40px; --s-600: 48px; --s-700: 64px; --s-800: 80px; --s-900: 96px;
+
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --gutter: var(--s-200);
+  --max: 1120px;
+  --serif: "Fraunces", Georgia, serif;
+  color-scheme: dark;
+}
+@media (min-width: 768px) { :root { --gutter: var(--s-300); } }
+
+*, *::before, *::after { box-sizing: border-box; }
+html { overflow-x: clip; scroll-behavior: smooth; scroll-padding-top: var(--s-900); }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+body {
+  margin: 0; background: var(--bg); color: var(--text);
+  font-family: "Geist", system-ui, sans-serif; font-size: 1rem; line-height: 1.5rem;
+  -webkit-font-smoothing: antialiased;
+}
+img { display: block; max-width: 100%; height: auto; }
+a { color: inherit; }
+h1, h2, h3 { margin: 0; font-weight: 500; text-wrap: balance; }
+h1, h2 { font-family: var(--serif); letter-spacing: -0.02em; font-variation-settings: "SOFT" 100; }
+p { margin: 0; text-wrap: pretty; }
+.mono { font-family: "Geist Mono", ui-monospace, monospace; }
+.text-sm { font-size: .875rem; line-height: 1.25rem; }
+
+.container { width: 100%; max-width: var(--max); margin: 0 auto; padding: 0 var(--gutter); }
+.section { padding: var(--s-700) 0; }
+@media (min-width: 768px) { .section { padding: var(--s-900) 0; } }
+
+.skip {
+  position: absolute; left: var(--s-200); top: var(--s-200); z-index: 100;
+  padding: var(--s-75) var(--s-100); border-radius: 8px;
+  background: var(--text); color: var(--bg); font-weight: 600; text-decoration: none;
+  transform: translateY(-200%); transition: transform 500ms var(--ease);
+}
+.skip:focus { transform: none; }
+:focus-visible { outline: 2px solid var(--tan); outline-offset: 2px; }
+
+/* A running stitch just inside the edge, like a sewn on patch */
+.patch { position: relative; }
+.patch::before {
+  content: ""; position: absolute; inset: var(--s-75); pointer-events: none;
+  border: 2px dashed var(--stitch); border-radius: calc(var(--r, 24px) - 8px);
+}
+
+/* Buttons */
+.btn {
+  position: relative; display: inline-flex; align-items: center; gap: var(--s-75);
+  padding: var(--s-75) var(--s-200);
+  border-radius: 9999px; border: 0;
+  font: inherit; font-size: 1rem; line-height: 1.5rem; font-weight: 600;
+  text-decoration: none; cursor: pointer; white-space: nowrap;
+  transition: background-color 300ms var(--ease), transform 500ms var(--ease);
+}
+.btn::after { content: ""; position: absolute; inset: 3px; border-radius: 9999px; border: 1.5px dashed rgba(28, 42, 80, 0.45); pointer-events: none; }
+.btn:hover { transform: translateY(-1px); }
+.btn:active { transform: scale(0.98); }
+.btn-primary { background: var(--tan); color: var(--ink); }
+.btn-primary:hover { background: var(--tan-hover); }
+.btn-sm { font-size: .875rem; line-height: 1.25rem; padding: var(--s-75) var(--s-100); }
+.btn i { font-size: 1.125rem; }
+
+/* Navigation */
+.nav-wrap { position: fixed; top: var(--s-200); left: 0; right: 0; z-index: 50; display: flex; justify-content: center; padding: 0 var(--gutter); pointer-events: none; }
+.nav {
+  pointer-events: auto; display: flex; align-items: center; gap: var(--s-200);
+  padding: var(--s-75) var(--s-75) var(--s-75) var(--s-100); border-radius: 9999px;
+  background: rgba(20, 29, 54, 0.72); border: 1px solid var(--line);
+  -webkit-backdrop-filter: blur(16px) saturate(140%); backdrop-filter: blur(16px) saturate(140%);
+}
+.brand { display: flex; align-items: center; gap: var(--s-75); text-decoration: none; font-weight: 600; }
+.brand img { width: 24px; height: 24px; }
+.nav-links { display: none; gap: var(--s-50); list-style: none; margin: 0; padding: 0; }
+.nav-links a {
+  display: block; padding: var(--s-50) var(--s-100); border-radius: 9999px;
+  color: var(--muted); text-decoration: none; font-size: .875rem; line-height: 1.25rem; font-weight: 500;
+  transition: color 300ms var(--ease), background-color 300ms var(--ease);
+}
+.nav-links a:hover { color: var(--text); }
+.nav-links a[aria-current="true"] { color: var(--text); background: rgba(244, 235, 221, 0.1); }
+@media (min-width: 768px) { .nav-links { display: flex; } .nav-toggle { display: none; } }
+.nav-toggle {
+  width: 36px; height: 36px; border-radius: 9999px; border: 0; padding: 0;
+  background: rgba(244, 235, 221, 0.1); color: var(--text); cursor: pointer; position: relative;
+}
+.nav-toggle span { position: absolute; left: 11px; width: 14px; height: 2px; border-radius: 2px; background: currentColor; transition: transform 500ms var(--ease); }
+.nav-toggle span:nth-child(1) { top: 14px; }
+.nav-toggle span:nth-child(2) { top: 20px; }
+.nav-open .nav-toggle span:nth-child(1) { transform: translateY(3px) rotate(45deg); }
+.nav-open .nav-toggle span:nth-child(2) { transform: translateY(-3px) rotate(-45deg); }
+.menu {
+  position: fixed; inset: 0; z-index: 40; padding: var(--s-900) var(--gutter) var(--s-600);
+  background: rgba(20, 29, 54, 0.92); -webkit-backdrop-filter: blur(24px); backdrop-filter: blur(24px);
+  display: flex; flex-direction: column; gap: var(--s-75);
+  opacity: 0; pointer-events: none; transition: opacity 500ms var(--ease);
+}
+.nav-open .menu { opacity: 1; pointer-events: auto; }
+.menu a {
+  font-family: var(--serif); font-size: 1.875rem; line-height: 2.25rem; text-decoration: none; padding: var(--s-75) 0;
+  opacity: 0; transform: translateY(24px); transition: opacity 500ms var(--ease), transform 500ms var(--ease);
+}
+.menu .btn { margin-top: var(--s-300); align-self: flex-start; font-family: inherit; font-size: 1rem; line-height: 1.5rem; padding: var(--s-75) var(--s-200); }
+.nav-open .menu a { opacity: 1; transform: none; }
+.nav-open .menu a:nth-child(2) { transition-delay: 60ms; }
+.nav-open .menu a:nth-child(3) { transition-delay: 120ms; }
+.nav-open .menu a:nth-child(4) { transition-delay: 180ms; }
+.nav-open .menu a:nth-child(5) { transition-delay: 240ms; }
+@media (min-width: 768px) { .menu { display: none; } }
+
+/* Hero: the whole background is stitched cloth */
+.hero { position: relative; min-height: max(100svh, 640px); display: flex; align-items: center; background: var(--cloth); }
+.cloth { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.cloth.no-gl { display: none; }
+.hero .container { position: relative; padding-top: calc(var(--s-900) + var(--s-200)); padding-bottom: var(--s-900); }
+.hero-copy { max-width: 520px; }
+.eyebrow {
+  display: inline-flex; align-items: center; gap: var(--s-75);
+  padding: var(--s-50) var(--s-100); border-radius: 9999px;
+  background: rgba(20, 29, 54, 0.7); border: 1.5px dashed var(--stitch);
+  color: var(--muted); font-size: .875rem; line-height: 1.25rem; font-weight: 500; text-decoration: none;
+  transition: color 300ms var(--ease), border-color 300ms var(--ease);
+}
+.eyebrow:hover { color: var(--text); border-color: var(--tan); }
+.eyebrow b { color: var(--text); font-weight: 600; }
+.hero h1 { margin-top: var(--s-300); font-size: 3rem; line-height: 1; color: var(--text); }
+@media (min-width: 1024px) { .hero h1 { font-size: 3.75rem; line-height: 1; } }
+.hero h1 em { font-style: normal; color: var(--tan); }
+.hero .sub { margin-top: var(--s-300); color: var(--muted); font-size: 1.125rem; line-height: 1.75rem; max-width: 460px; }
+.cta-row { margin-top: var(--s-400); display: flex; flex-wrap: wrap; gap: var(--s-100); align-items: center; }
+.proof { margin-top: var(--s-300); display: flex; flex-wrap: wrap; gap: var(--s-75) var(--s-200); color: var(--muted); font-size: .875rem; line-height: 1.25rem; }
+.proof span { display: inline-flex; align-items: center; gap: var(--s-50); }
+.proof i { color: var(--tan); }
+.hint { position: absolute; left: var(--gutter); bottom: var(--s-200); color: var(--faint); font-size: .75rem; line-height: 1rem; display: none; }
+@media (hover: hover) and (min-width: 768px) { .hint { display: block; } }
+@media (max-width: 767px) {
+  .hero { align-items: flex-start; }
+  .hero .container { padding-bottom: calc(96vw + var(--s-200)); }
+  .hero h1 { font-size: 2.25rem; line-height: 2.5rem; }
+}
+
+/* Section headings */
+.kicker {
+  display: inline-block; padding: var(--s-25) var(--s-100); border-radius: 9999px;
+  border: 1.5px dashed var(--stitch); color: var(--tan); font-size: .875rem; line-height: 1.25rem; font-weight: 600;
+}
+.h2 { margin-top: var(--s-200); font-size: 2.25rem; line-height: 2.5rem; max-width: 680px; }
+@media (min-width: 768px) { .h2 { font-size: 3rem; line-height: 1; } }
+.lead { margin-top: var(--s-200); color: var(--muted); font-size: 1.125rem; line-height: 1.75rem; max-width: 600px; }
+
+/* Sampler: the reading calendar, cross stitched on linen in a wooden frame */
+.frame { margin-top: var(--s-600); border-radius: 24px; padding: var(--s-75); background: #B9844F; box-shadow: 0 24px 64px rgba(0, 0, 0, 0.45), inset 0 0 0 1px rgba(255, 255, 255, 0.12); }
+.frame .linen { border-radius: 16px; overflow: hidden; background: var(--linen); }
+.sampler { display: block; width: 100%; aspect-ratio: 57 / 29; }
+.sampler.no-gl { display: none; }
+@media (max-width: 639px) { .sampler { aspect-ratio: 31 / 31; } }
+.legend { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--s-100); margin-top: var(--s-200); color: var(--muted); font-size: .875rem; line-height: 1.25rem; }
+.swatches { display: inline-flex; align-items: center; gap: var(--s-50); }
+.swatches i { width: 12px; height: 12px; border-radius: 2px; display: inline-block; }
+.tallies { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--s-200); margin-top: var(--s-400); }
+.tally { --r: 24px; border-radius: 24px; background: var(--surface); padding: var(--s-300); }
+.tally .n { font-family: var(--serif); font-size: 2.25rem; line-height: 2.5rem; color: var(--cream); }
+.tally .n small { font-family: "Geist", sans-serif; font-size: 1rem; line-height: 1.5rem; color: var(--muted); margin-left: var(--s-50); }
+.tally .l { margin-top: var(--s-50); color: var(--muted); font-size: .875rem; line-height: 1.25rem; }
+@media (max-width: 639px) { .tallies { grid-template-columns: 1fr; gap: var(--s-100); } .tally { padding: var(--s-200) var(--s-300); display: flex; align-items: baseline; justify-content: space-between; } }
+
+/* Features */
+.bento { display: grid; gap: var(--s-200); margin-top: var(--s-600); }
+@media (min-width: 768px) { .bento { grid-template-columns: repeat(6, 1fr); gap: var(--s-300); } .b-3 { grid-column: span 3; } .b-2 { grid-column: span 2; } }
+.card { --r: 24px; border-radius: 24px; background: var(--surface); display: flex; flex-direction: column; overflow: hidden; transition: transform 500ms var(--ease); }
+.card:hover { transform: translateY(-2px); }
+.card-body { padding: var(--s-400) var(--s-400) var(--s-300); }
+.card-body h3 { font-size: 1.25rem; line-height: 1.75rem; font-weight: 600; }
+.card-body h3 i { display: block; width: fit-content; margin-bottom: var(--s-100); color: var(--tan); font-size: 1.5rem; }
+.card-body p { margin-top: var(--s-75); color: var(--muted); }
+.card-media { margin: auto var(--s-200) var(--s-200); border-radius: 8px; overflow: hidden; background: #0E1528; display: flex; justify-content: center; padding: var(--s-300) var(--s-300) 0; }
+.shot { position: relative; overflow: hidden; background: #0B1122; width: 100%; max-width: 300px; aspect-ratio: 587 / 560; border-radius: 8px 8px 0 0; }
+.b-2 .shot { aspect-ratio: 587 / 640; }
+.shot img { width: 100%; opacity: 0; transition: opacity 500ms var(--ease); }
+.shot.is-loaded img { opacity: 1; }
+.shot:not(.is-loaded)::after { content: ""; position: absolute; inset: 0; background: var(--surface-2); animation: pulse 1.6s var(--ease) infinite alternate; }
+@keyframes pulse { from { opacity: 0.3; } to { opacity: 0.8; } }
+.card-media.widgets { background: #1E2741; }
+.accounts { margin: auto var(--s-200) var(--s-200); border-radius: 8px; background: #0E1528; padding: var(--s-200); display: grid; gap: var(--s-75); }
+.acct { display: flex; align-items: center; gap: var(--s-100); padding: var(--s-75); border-radius: 4px; background: var(--surface-2); }
+.avatar { width: 32px; height: 32px; border-radius: 9999px; display: grid; place-items: center; font-weight: 600; font-size: .875rem; line-height: 1.25rem; color: var(--ink); flex: none; }
+.acct .who { flex: 1; min-width: 0; }
+.acct .who b { display: block; font-weight: 600; font-size: .875rem; line-height: 1.25rem; }
+.acct .who span { display: block; color: var(--muted); font-size: .75rem; line-height: 1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.acct .min { font-size: .875rem; line-height: 1.25rem; white-space: nowrap; }
+
+/* Tagline reveal */
+.tagline { padding: var(--s-900) 0; }
+.tagline p { max-width: 820px; font-family: var(--serif); font-size: 2.25rem; line-height: 2.5rem; letter-spacing: -0.02em; text-wrap: balance; }
+@media (min-width: 768px) { .tagline p { font-size: 3.75rem; line-height: 1; } .tagline .w { display: inline-block; margin-bottom: var(--s-100); } }
+.tagline .w { opacity: 0.28; transition: opacity 300ms var(--ease), color 300ms var(--ease); }
+.tagline .w.on { opacity: 1; }
+.tagline .w.hl.on { color: var(--tan); }
+
+/* How it works */
+.steps { display: grid; gap: var(--s-300); margin-top: var(--s-600); }
+@media (min-width: 768px) { .steps { grid-template-columns: repeat(3, 1fr); } }
+.step { --r: 24px; border-radius: 24px; padding: var(--s-400); background: var(--surface); }
+.step .num { width: 48px; height: 48px; border-radius: 9999px; display: grid; place-items: center; background: var(--tan); color: var(--ink); font-family: var(--serif); font-size: 1.5rem; line-height: 2rem; position: relative; }
+.step .num::after { content: ""; position: absolute; inset: 3px; border-radius: 9999px; border: 1.5px dashed rgba(28, 42, 80, 0.45); }
+.step h3 { margin-top: var(--s-300); font-size: 1.25rem; line-height: 1.75rem; font-weight: 600; }
+.step p { margin-top: var(--s-75); color: var(--muted); }
+code { font-family: "Geist Mono", ui-monospace, monospace; font-size: .875rem; line-height: 1.25rem; color: var(--text); background: rgba(244, 235, 221, 0.08); padding: 0 var(--s-50); border-radius: 4px; }
+.step a { color: var(--text); text-underline-offset: 3px; }
+
+.try { --r: 24px; margin-top: var(--s-300); border-radius: 24px; padding: var(--s-400); background: var(--surface); display: grid; gap: var(--s-200); }
+.try > div { min-width: 0; }
+@media (min-width: 900px) { .try { grid-template-columns: 1fr 1.5fr; align-items: center; gap: var(--s-400); } }
+.try h3 { font-size: 1.25rem; line-height: 1.75rem; font-weight: 600; }
+.try p { margin-top: var(--s-75); color: var(--muted); }
+.term { border-radius: 8px; background: #0B1122; padding: var(--s-200); position: relative; }
+.term pre { margin: 0; overflow-x: auto; font-family: "Geist Mono", ui-monospace, monospace; font-size: .875rem; line-height: 1.25rem; color: var(--faint); padding-right: var(--s-800); }
+.term pre b { color: var(--text); font-weight: 500; }
+.copy {
+  position: absolute; top: var(--s-100); right: var(--s-100);
+  display: inline-flex; align-items: center; gap: var(--s-50);
+  padding: var(--s-50) var(--s-75); border-radius: 4px; border: 1px solid var(--line);
+  background: var(--surface-2); color: var(--muted); font: inherit; font-size: .75rem; line-height: 1rem; font-weight: 600; cursor: pointer;
+  transition: color 300ms var(--ease), background-color 300ms var(--ease);
+}
+.copy:hover { color: var(--text); }
+.copy:active { transform: scale(0.98); }
+.status { min-height: 1rem; margin-top: var(--s-75); font-size: .75rem; line-height: 1rem; color: var(--muted); }
+.status.error { color: #F3A08F; }
+
+/* Privacy */
+.stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--s-200); margin-top: var(--s-600); }
+@media (min-width: 900px) { .stats { grid-template-columns: repeat(4, 1fr); gap: var(--s-300); } }
+.stat { --r: 24px; border-radius: 24px; padding: var(--s-400) var(--s-300) var(--s-300); background: var(--surface); }
+.stat .n { font-family: var(--serif); font-size: 2.25rem; line-height: 2.5rem; color: var(--cream); }
+.stat .l { margin-top: var(--s-75); color: var(--muted); font-size: .875rem; line-height: 1.25rem; }
+@media (max-width: 479px) { .stat .n { font-size: 1.875rem; line-height: 2.25rem; } .stat { padding: var(--s-300) var(--s-200) var(--s-200); } }
+.signins { --r: 24px; margin-top: var(--s-300); border-radius: 24px; background: var(--surface); padding: var(--s-200); }
+.signins h3 { padding: var(--s-200) var(--s-200) var(--s-100); font-size: 1.125rem; line-height: 1.75rem; font-weight: 600; }
+.signins ul { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-25); }
+.signins li { display: flex; gap: var(--s-200); align-items: center; padding: var(--s-200); border-radius: 8px; background: #0E1528; }
+.signins li i { font-size: 1.5rem; color: var(--tan); flex: none; }
+.signins li b { display: block; font-weight: 600; }
+.signins li span { color: var(--muted); font-size: .875rem; line-height: 1.25rem; }
+
+/* FAQ */
+.faq-grid { display: grid; gap: var(--s-600); }
+@media (min-width: 900px) { .faq-grid { grid-template-columns: 1fr 1.6fr; gap: var(--s-700); } }
+.faq { display: grid; gap: var(--s-75); }
+.faq details { border-radius: 16px; background: var(--surface); border: 1.5px dashed transparent; transition: border-color 300ms var(--ease); }
+.faq details:hover, .faq details[open] { border-color: var(--stitch); }
+.faq summary { list-style: none; cursor: pointer; padding: var(--s-200) var(--s-300); display: flex; justify-content: space-between; align-items: center; gap: var(--s-200); font-weight: 600; border-radius: 16px; }
+.faq summary::-webkit-details-marker { display: none; }
+.faq summary i { color: var(--tan); font-size: 1.125rem; transition: transform 500ms var(--ease); flex: none; }
+.faq details[open] summary i { transform: rotate(45deg); }
+.faq .a { padding: 0 var(--s-300) var(--s-300); color: var(--muted); }
+.faq details[open] .a { animation: rise 500ms var(--ease); }
+.faq .a a, .lead a { color: var(--text); text-underline-offset: 3px; }
+@keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+/* Final CTA */
+.final { --r: 24px; text-align: center; border-radius: 24px; background: var(--cloth); padding: var(--s-800) var(--s-300); }
+.badge { width: 96px; height: 96px; margin: 0 auto; border-radius: 9999px; padding: var(--s-50); background: var(--tan); position: relative; }
+.badge img { width: 100%; height: 100%; border-radius: 9999px; object-fit: cover; }
+.badge::after { content: ""; position: absolute; inset: 8px; border-radius: 9999px; border: 2px dashed rgba(248, 228, 191, 0.7); }
+.final h2 { margin: var(--s-300) auto 0; max-width: 680px; font-size: 2.25rem; line-height: 2.5rem; }
+@media (min-width: 768px) { .final h2 { font-size: 3rem; line-height: 1; } }
+.final .lead { margin-left: auto; margin-right: auto; }
+.final .cta-row { justify-content: center; }
+.reversal { margin-top: var(--s-300); display: flex; flex-wrap: wrap; justify-content: center; gap: var(--s-75) var(--s-300); color: var(--muted); font-size: .875rem; line-height: 1.25rem; }
+.reversal span { display: inline-flex; align-items: center; gap: var(--s-50); }
+.reversal i { color: var(--tan); }
+.alt { margin-top: var(--s-300); color: var(--faint); font-size: .875rem; line-height: 1.25rem; }
+.alt a { color: var(--muted); text-underline-offset: 3px; transition: color 300ms var(--ease); }
+.alt a:hover { color: var(--text); }
+
+footer { padding: var(--s-600) 0 var(--s-700); color: var(--faint); font-size: .875rem; line-height: 1.25rem; }
+.foot-row { display: flex; flex-wrap: wrap; gap: var(--s-200); justify-content: space-between; align-items: center; border-top: 2px dashed var(--line); padding-top: var(--s-300); }
+.foot-row nav { display: flex; flex-wrap: wrap; gap: var(--s-75) var(--s-300); }
+.foot-row a { text-decoration: none; color: var(--muted); transition: color 300ms var(--ease); }
+.foot-row a:hover { color: var(--text); }
+
+/* Scroll reveals */
+.reveal { opacity: 0; transform: translateY(32px); transition: opacity 700ms var(--ease), transform 700ms var(--ease); }
+.reveal.in { opacity: 1; transform: none; }
+.no-js .reveal { opacity: 1; transform: none; }
+@media (prefers-reduced-motion: reduce) {
+  .reveal, .menu a { transform: none; }
+  .btn:hover, .btn:active, .card:hover { transform: none; }
+  .faq details[open] .a { animation: none; }
+}
+</style>
+</head>
+<body class="no-js">
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="nav-wrap">
+  <nav class="nav" aria-label="Main">
+    <a class="brand" href="#top" aria-label="Reading Stats, back to top">
+      <img src="logo.svg" alt="" width="24" height="24">
+      <span>Reading Stats</span>
+    </a>
+    <ul class="nav-links">
+      <li><a href="#year">Your year</a></li>
+      <li><a href="#features">Features</a></li>
+      <li><a href="#how">How it works</a></li>
+      <li><a href="#faq">FAQ</a></li>
+    </ul>
+    <a class="btn btn-primary btn-sm" href="https://github.com/progremir/reading-stats/blob/main/INSTALL.md">Set up</a>
+    <button class="nav-toggle" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="menu"><span></span><span></span></button>
+  </nav>
+</header>
+<div class="menu" id="menu" aria-hidden="true">
+  <a href="#year">Your year</a>
+  <a href="#features">Features</a>
+  <a href="#how">How it works</a>
+  <a href="#faq">FAQ</a>
+  <a class="btn btn-primary" href="https://github.com/progremir/reading-stats/blob/main/INSTALL.md">Set up your server</a>
+</div>
+
+<main id="main">
+  <section class="hero" id="top">
+    <canvas class="cloth" id="cloth" aria-hidden="true"></canvas>
+    <div class="container">
+      <div class="hero-copy" id="hero-copy">
+        <a class="eyebrow" href="https://testflight.apple.com/join/KPEdXnF8"><i class="ph ph-device-mobile"></i> <span><b>iPhone app and widgets</b> on TestFlight</span></a>
+        <h1>Every page you read, <em>counted</em> on your iPhone</h1>
+        <p class="sub">Reading Stats syncs KOReader's reading time, streaks and highlights to a small server you own, then shows them on the web and in iPhone widgets.</p>
+        <div class="cta-row">
+          <a class="btn btn-primary" href="https://github.com/progremir/reading-stats/blob/main/INSTALL.md">Set up your server <i class="ph ph-arrow-right"></i></a>
+        </div>
+        <div class="proof">
+          <span><i class="ph ph-scales"></i> Free and MIT licensed</span>
+          <span><i class="ph ph-file-py"></i> Python standard library only</span>
+          <span><i class="ph ph-eye-slash"></i> No tracking</span>
+        </div>
+      </div>
+    </div>
+    <p class="hint" aria-hidden="true">Move the pointer to catch the light on the thread</p>
+  </section>
+
+  <section class="section" id="year" aria-labelledby="y-title">
+    <div class="container">
+      <div class="reveal">
+        <span class="kicker">Your year</span>
+        <h2 class="h2" id="y-title">Half a year of reading, one stitch per day</h2>
+        <p class="lead">Every day you open a book on your Kobo becomes a square on your calendar. The deeper the blue, the longer you read.</p>
+      </div>
+      <div class="frame reveal">
+        <div class="linen"><canvas class="sampler" id="sampler" role="img" aria-label="A 26 week reading calendar in cross stitch, with a 12 day streak"></canvas></div>
+      </div>
+      <div class="legend reveal">
+        <span id="sampler-caption">Days read in the last 26 weeks</span>
+        <span class="swatches">Less <i style="background:#EDE3D0"></i><i style="background:#9CC1EE"></i><i style="background:#5B95E0"></i><i style="background:#2F6CC4"></i><i style="background:#1D4A8F"></i> More</span>
+      </div>
+      <div class="tallies">
+        <div class="tally patch reveal"><div class="n">42<small>min</small></div><p class="l">read today</p></div>
+        <div class="tally patch reveal"><div class="n">12<small>days</small></div><p class="l">current streak, best 13</p></div>
+        <div class="tally patch reveal"><div class="n">73<small>h</small></div><p class="l">read this year</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="features" aria-labelledby="f-title">
+    <div class="container">
+      <div class="reveal">
+        <span class="kicker">Features</span>
+        <h2 class="h2" id="f-title">Everything your reader knows, readable at a glance</h2>
+      </div>
+      <div class="bento">
+        <article class="card patch b-3 reveal">
+          <div class="card-body">
+            <h3><i class="ph ph-chart-bar"></i>Know where today stands</h3>
+            <p>Minutes read today, this week, month and year, your streak, the last 30 days and a half year calendar.</p>
+          </div>
+          <div class="card-media"><div class="shot"><img src="screenshots/today.png" width="587" height="1000" loading="lazy" alt="The Today screen: 42 minutes read today, Walden at 62 percent, a 12 day streak and totals for the week, month and year"></div></div>
+        </article>
+        <article class="card patch b-3 reveal">
+          <div class="card-body">
+            <h3><i class="ph ph-highlighter"></i>Find any highlight in seconds</h3>
+            <p>KOReader highlights and the Kindle <span class="mono text-sm">My Clippings.txt</span>, searchable by text, note, chapter or author. Export what you see to Excel.</p>
+          </div>
+          <div class="card-media"><div class="shot"><img src="screenshots/highlights.png" width="587" height="1000" loading="lazy" alt="Highlights from Walden grouped by chapter, with a search field and filters"></div></div>
+        </article>
+        <article class="card patch b-2 reveal">
+          <div class="card-body">
+            <h3><i class="ph ph-paper-plane-tilt"></i>Send books from your phone</h3>
+            <p>Upload EPUB, PDF or MOBI and it lands in the reader's Inbox the next time it's online.</p>
+          </div>
+          <div class="card-media"><div class="shot"><img src="screenshots/send.png" width="587" height="1000" loading="lazy" alt="Send to e reader: one book uploading and three waiting for the reader"></div></div>
+        </article>
+        <article class="card patch b-2 reveal">
+          <div class="card-body">
+            <h3><i class="ph ph-squares-four"></i>Your streak on the Home Screen</h3>
+            <p>Widgets for today, the book you're on and a reading calendar, plus Lock Screen widgets.</p>
+          </div>
+          <div class="card-media widgets"><div class="shot" style="background:transparent"><img src="screenshots/widgets.png" width="836" height="2028" loading="lazy" alt="iPhone widgets showing 42 minutes today, a 12 day streak and a reading calendar"></div></div>
+        </article>
+        <article class="card patch b-2 reveal">
+          <div class="card-body">
+            <h3><i class="ph ph-users-three"></i>One server for the household</h3>
+            <p>Each reader gets their own account and sees only their own books, stats and highlights.</p>
+          </div>
+          <div class="accounts" aria-hidden="true">
+            <div class="acct"><span class="avatar" style="background:#9CC1EE">M</span><span class="who"><b>maren</b><span>Middlemarch · 41%</span></span><span class="min mono">37 min</span></div>
+            <div class="acct"><span class="avatar" style="background:#E0A15E">T</span><span class="who"><b>tomasz</b><span>The Brothers Karamazov · 18%</span></span><span class="min mono">64 min</span></div>
+            <div class="acct"><span class="avatar" style="background:#F8E4BF">I</span><span class="who"><b>ines</b><span>Frankenstein · 73%</span></span><span class="min mono">22 min</span></div>
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="tagline" aria-label="In short">
+    <div class="container">
+      <p id="tagline">You turn the pages on E&nbsp;Ink. Your server keeps count, and your phone keeps the streak in sight.</p>
+    </div>
+  </section>
+
+  <section class="section" id="how" aria-labelledby="h-title">
+    <div class="container">
+      <div class="reveal">
+        <span class="kicker">How it works</span>
+        <h2 class="h2" id="h-title">Set it up once, then just read</h2>
+        <p class="lead">One afternoon of setup. After that nothing needs a tap, a cable or a sync button.</p>
+      </div>
+      <div class="steps">
+        <article class="step patch reveal">
+          <div class="num">1</div>
+          <h3>You read</h3>
+          <p>KOReader uploads <code>statistics.sqlite3</code> whenever WiFi connects and every 30 minutes. The plugin sends each highlight seconds after you make it. Offline changes wait and go out later.</p>
+        </article>
+        <article class="step patch reveal">
+          <div class="num">2</div>
+          <h3>Your server keeps it</h3>
+          <p><code>server.py</code> is a WebDAV folder per account plus the web app and API. Deploy it to Railway by following <a href="https://github.com/progremir/reading-stats/blob/main/INSTALL.md">INSTALL.md</a>.</p>
+        </article>
+        <article class="step patch reveal">
+          <div class="num">3</div>
+          <h3>You look</h3>
+          <p>Open the web app in any browser, or install the iPhone app and add the widgets. Everything reads from the same server.</p>
+        </article>
+      </div>
+      <div class="try patch reveal">
+        <div>
+          <h3>Try it on your computer first</h3>
+          <p>Generate a demo library and sign in as <span class="mono text-sm">reader</span>. Python 3 is the only requirement.</p>
+        </div>
+        <div>
+          <div class="term">
+            <pre id="cmd"><b>git clone https://github.com/progremir/reading-stats</b>
+<b>cd reading-stats &amp;&amp; scripts/demo_data.py ./demo-data</b>
+<b>AUTH_PASSWORD=demo-password-123 DATA_DIR=./demo-data python3 server.py</b>
+# open http://localhost:8080</pre>
+            <button class="copy" type="button" id="copy"><i class="ph ph-copy"></i><span>Copy</span></button>
+          </div>
+          <p class="status" id="copy-status" role="status" aria-live="polite"></p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="privacy" aria-labelledby="p-title">
+    <div class="container">
+      <div class="reveal">
+        <span class="kicker">Privacy</span>
+        <h2 class="h2" id="p-title">What you read stays on a machine you control</h2>
+        <p class="lead">No accounts with us, because there is no us. The only outside request is a cover lookup on Open Library by title and author.</p>
+      </div>
+      <div class="stats">
+        <div class="stat patch reveal"><div class="n">0</div><p class="l">analytics, ads or trackers in the server or the iPhone app</p></div>
+        <div class="stat patch reveal"><div class="n">600,000</div><p class="l">PBKDF2 iterations on every account password</p></div>
+        <div class="stat patch reveal"><div class="n">180 d</div><p class="l">sessions, each listed and revocable on your account page</p></div>
+        <div class="stat patch reveal"><div class="n">1</div><p class="l">device password per reader, so a lost Kobo never exposes your account</p></div>
+      </div>
+      <div class="signins patch reveal">
+        <h3>Each part signs in its own way</h3>
+        <ul>
+          <li><i class="ph ph-browser"></i><div><b>Browser and iPhone app</b><span>Username and account password, with a session cookie</span></div></li>
+          <li><i class="ph ph-book-open-text"></i><div><b>KOReader</b><span>Username and a device password made on the account page</span></div></li>
+          <li><i class="ph ph-squares-four"></i><div><b>iPhone widgets</b><span>A widget token the app gets when you sign in on that phone</span></div></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="faq" aria-labelledby="q-title">
+    <div class="container faq-grid">
+      <div class="reveal">
+        <span class="kicker">FAQ</span>
+        <h2 class="h2" id="q-title">Questions before you set it up</h2>
+        <p class="lead">Something missing? <a href="https://github.com/progremir/reading-stats/issues">Open an issue on GitHub</a>.</p>
+      </div>
+      <div class="faq reveal">
+        <details>
+          <summary>Which readers does it work with?<i class="ph ph-plus"></i></summary>
+          <div class="a">Anything that runs KOReader: Kobo, PocketBook, Android readers and jailbroken Kindles. Highlights from the stock Kindle reader come in through <code>My Clippings.txt</code>.</div>
+        </details>
+        <details>
+          <summary>Do I really need my own server?<i class="ph ph-plus"></i></summary>
+          <div class="a">Yes. That is where your data lives. <a href="https://github.com/progremir/reading-stats/blob/main/INSTALL.md">INSTALL.md</a> walks through deploying it to Railway, and it runs anywhere Python 3 does: a home server, a Raspberry Pi or a small VPS.</div>
+        </details>
+        <details>
+          <summary>What does it cost?<i class="ph ph-plus"></i></summary>
+          <div class="a">Nothing. Reading Stats is MIT licensed. You only pay for whatever hosts your server, if anything.</div>
+        </details>
+        <details>
+          <summary>Is there an app for Android?<i class="ph ph-plus"></i></summary>
+          <div class="a">Not yet. The web app works in any phone browser and can be added to the home screen. The native app and widgets are iPhone only for now, on <a href="https://testflight.apple.com/join/KPEdXnF8">TestFlight</a>.</div>
+        </details>
+        <details>
+          <summary>Can my partner and kids use the same server?<i class="ph ph-plus"></i></summary>
+          <div class="a">Yes. An admin adds each person, who then picks their own password. Everyone sees only their own books, stats and highlights.</div>
+        </details>
+        <details>
+          <summary>What happens when the reader is offline?<i class="ph ph-plus"></i></summary>
+          <div class="a">Nothing is lost. Stats and highlights wait on the device and go out the next time WiFi connects. Books you send wait on the server in the same way.</div>
+        </details>
+        <details>
+          <summary>What if I lose my Kobo?<i class="ph ph-plus"></i></summary>
+          <div class="a">Revoke its device password on the account page. The reader never held your account password, so nothing else needs to change.</div>
+        </details>
+        <details>
+          <summary>Can I get my data out?<i class="ph ph-plus"></i></summary>
+          <div class="a">It is already out. Stats are KOReader's own SQLite file and highlights are plain files in your server's data folder. Highlights also export to Excel from the web app.</div>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" aria-labelledby="c-title" style="padding-top:0">
+    <div class="container">
+      <div class="final patch reveal">
+        <div class="badge"><img src="owl.png" alt="The Reading Stats owl" width="88" height="88"></div>
+        <h2 id="c-title">See your streak without picking up the reader</h2>
+        <p class="lead">Follow INSTALL.md yourself, or hand it to a coding agent and let it do the steps.</p>
+        <div class="cta-row">
+          <a class="btn btn-primary" href="https://github.com/progremir/reading-stats/blob/main/INSTALL.md">Set up your server <i class="ph ph-arrow-right"></i></a>
+        </div>
+        <div class="reversal">
+          <span><i class="ph-fill ph-check-circle"></i> Free and MIT licensed</span>
+          <span><i class="ph-fill ph-check-circle"></i> No account with anyone</span>
+          <span><i class="ph-fill ph-check-circle"></i> Delete the folder and it's gone</span>
+        </div>
+        <p class="alt">Already running a server? <a href="https://testflight.apple.com/join/KPEdXnF8">Get the iPhone app on TestFlight</a></p>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="container foot-row">
+    <span>Made for people who read on E Ink and like to see their streaks.</span>
+    <nav aria-label="Footer">
+      <a href="https://github.com/progremir/reading-stats">GitHub</a>
+      <a href="https://github.com/progremir/reading-stats/blob/main/PRIVACY.md">Privacy policy</a>
+      <a href="https://github.com/progremir/reading-stats/blob/main/LICENSE">License and terms</a>
+    </nav>
+  </div>
+</footer>
+
+<script type="module">
+import { embroider, plot, stitchText, textWidth } from './embroidery.js';
+
+// Hero: the owl from the app icon, stitched on night blue cloth under a moon and stars
+const owl = new Image();
+owl.src = 'owl.png';
+const OWL_THREADS = ['#D4924F', '#F8E4BF', '#8A5530'].map(h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16)));
+const heroCopy = document.getElementById('hero-copy');
+
+function rng(seed) { return () => (seed = (seed * 16807) % 2147483647) / 2147483647; }
+
+function buildHero(ctx, { cols, rows, cell, rect }) {
+  const mobile = rect.width < 768;
+  const S = Math.round(mobile ? Math.min(cols * 0.96, rows * 0.55) : Math.min(rows * 0.96, cols * 0.5));
+  const ox = cols - S, oy = rows - S;
+
+  // keep the cloth behind the copy free of stitches
+  const c = heroCopy.getBoundingClientRect();
+  const pad = 2;
+  const free = {
+    x0: Math.floor((c.left - rect.left) / cell) - pad, x1: Math.ceil((c.right - rect.left) / cell) + pad,
+    y0: Math.floor((c.top - rect.top) / cell) - pad, y1: Math.ceil((c.bottom - rect.top) / cell) + pad,
+  };
+  const blocked = (x, y) => x >= free.x0 && x <= free.x1 && y >= free.y0 && y <= free.y1;
+
+  // owl, mirrored so it peeks in from the bottom right corner
+  if (owl.complete && owl.naturalWidth) {
+    const tmp = document.createElement('canvas');
+    tmp.width = cols; tmp.height = rows;
+    const t = tmp.getContext('2d', { willReadFrequently: true });
+    t.imageSmoothingQuality = 'high';
+    t.translate(ox + S, oy); t.scale(-1, 1);
+    t.drawImage(owl, 0, 0, S, S);
+    const src = t.getImageData(0, 0, cols, rows).data;
+    const out = ctx.createImageData(cols, rows);
+    for (let i = 0; i < src.length; i += 4) {
+      const r = src[i], g = src[i + 1], b = src[i + 2];
+      if (src[i + 3] < 128 || b > r) continue; // night blue background stays cloth
+      let best = OWL_THREADS[0], bd = Infinity;
+      for (const th of OWL_THREADS) {
+        const d = (th[0] - r) ** 2 + (th[1] - g) ** 2 + (th[2] - b) ** 2;
+        if (d < bd) { bd = d; best = th; }
+      }
+      out.data.set([...best, 255], i);
+    }
+    ctx.putImageData(out, 0, 0);
+  }
+
+  // crescent moon
+  const R = Math.max(4, Math.round(S * 0.12));
+  const mx = Math.round(mobile ? cols * 0.78 : ox + S * 0.62);
+  const my = Math.round(mobile ? oy - R - 3 : Math.max(R + 4, oy - R * 0.4));
+  for (let y = -R; y <= R; y++) for (let x = -R; x <= R; x++) {
+    const inA = x * x + y * y <= R * R;
+    const dx = x - R * 0.42, dy = y + R * 0.3;
+    const inB = dx * dx + dy * dy <= (R * 0.78) ** 2;
+    if (inA && !inB && !blocked(mx + x, my + y)) plot(ctx, mx + x, my + y, '#F3DE9C');
+  }
+
+  // stars: single crosses and a few small plus signs, kept clear of the owl and the copy
+  const rand = rng(cols * 31 + rows);
+  const owlTop = oy + S * 0.18;
+  for (let y = 1; y < rows - 1; y++) for (let x = 1; x < cols - 1; x++) {
+    if (blocked(x, y) || (x > ox + S * 0.05 && y > owlTop)) continue;
+    const r = rand();
+    if (r < 0.006) plot(ctx, x, y, rand() < 0.5 ? '#F8E4BF' : '#C9D6F2');
+    else if (r < 0.0075 && !blocked(x - 1, y - 1) && !blocked(x + 1, y + 1)) {
+      for (const [dx, dy] of [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]]) plot(ctx, x + dx, y + dy, '#F3DE9C');
+    }
+  }
+}
+
+const hero = embroider(document.getElementById('cloth'), {
+  cell: w => (w < 768 ? 7 : w < 1280 ? 9 : 11),
+  fabric: [28, 42, 80],
+  build: buildHero,
+  sweep: 2.4,
+  host: document.querySelector('.hero'),
+});
+owl.addEventListener('load', () => hero && hero.relayout());
+
+// Sampler: the reading calendar in cross stitch on linen
+const LEVELS = ['#D9CDB6', '#9CC1EE', '#5B95E0', '#2F6CC4', '#1D4A8F'];
+const FLAME = ['...o...', '...oo..', '..ooo..', '.ooooo.', '.ooyoo.', 'ooyyyoo', 'ooyyyoo', '.ooyoo.', '..ooo..'];
+function calendar(weeks) {
+  const rand = rng(42), days = [];
+  for (let i = 0; i < weeks * 7; i++) {
+    const r = rand();
+    days.push(r < 0.34 ? 0 : r < 0.55 ? 1 : r < 0.75 ? 2 : r < 0.9 ? 3 : 4);
+  }
+  for (let i = 1; i <= 12; i++) days[days.length - i] ||= 2;
+  days[days.length - 13] = 0;
+  return days;
+}
+
+function buildSampler(ctx, { cols }) {
+  const weeks = cols >= 57 ? 26 : 13, m = 3;
+  const days = calendar(weeks);
+  const read = days.filter(Boolean).length;
+  document.getElementById('sampler-caption').textContent = `${read} days read in the last ${weeks} weeks`;
+  if (weeks === 26) stitchText(ctx, String(read), m, m, '#1C2A50');
+  const streak = '12';
+  const fx = cols - m - textWidth(streak) - 9;
+  FLAME.forEach((row, y) => [...row].forEach((ch, x) => {
+    if (ch !== '.') plot(ctx, fx + x, m - 1 + y, ch === 'o' ? '#E07B2E' : '#F2B33D');
+  }));
+  stitchText(ctx, streak, cols - m - textWidth(streak), m, '#E07B2E');
+  const top = m + 7 + 3;
+  days.forEach((lvl, i) => lvl && plot(ctx, m + 2 * Math.floor(i / 7), top + 2 * (i % 7), LEVELS[lvl]));
+}
+
+embroider(document.getElementById('sampler'), {
+  cell: w => w / (w < 640 ? 31 : 57),
+  fabric: [237, 227, 208],
+  build: buildSampler,
+  sweep: 1.6,
+});
+</script>
+
+<script>
+(() => {
+  document.body.classList.remove('no-js');
+
+  document.querySelectorAll('.shot img').forEach(img => {
+    const done = () => img.parentElement.classList.add('is-loaded');
+    if (img.complete && img.naturalWidth) done(); else img.addEventListener('load', done, { once: true });
+  });
+
+  const io = new IntersectionObserver(entries => {
+    entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
+  }, { rootMargin: '0px 0px -10% 0px' });
+  document.querySelectorAll('.reveal').forEach(el => {
+    const sibs = [...el.parentElement.children].filter(n => n.classList.contains('reveal'));
+    el.style.transitionDelay = Math.min(sibs.indexOf(el), 4) * 80 + 'ms';
+    io.observe(el);
+  });
+
+  // Tagline: each word lights up as it crosses a line at 65% of the viewport
+  const tag = document.getElementById('tagline');
+  const accent = new Set(['count,', 'streak']);
+  tag.innerHTML = tag.textContent.trim().split(/ +/).map(w => `<span class="w${accent.has(w) ? ' hl' : ''}">${w}</span>`).join(' ');
+  const words = [...tag.querySelectorAll('.w')];
+  let ticking = false;
+  const paint = () => {
+    ticking = false;
+    const line = innerHeight * 0.65;
+    words.forEach(w => w.classList.toggle('on', w.getBoundingClientRect().top < line));
+  };
+  const onScroll = () => { if (!ticking) { ticking = true; requestAnimationFrame(paint); } };
+  addEventListener('scroll', onScroll, { passive: true });
+  addEventListener('resize', onScroll);
+  paint();
+
+  const toggle = document.querySelector('.nav-toggle');
+  const menu = document.getElementById('menu');
+  const setOpen = open => {
+    document.body.classList.toggle('nav-open', open);
+    toggle.setAttribute('aria-expanded', open);
+    toggle.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
+    menu.setAttribute('aria-hidden', !open);
+    document.body.style.overflow = open ? 'hidden' : '';
+  };
+  toggle.addEventListener('click', () => setOpen(!document.body.classList.contains('nav-open')));
+  menu.querySelectorAll('a').forEach(a => a.addEventListener('click', () => setOpen(false)));
+  addEventListener('keydown', e => { if (e.key === 'Escape') setOpen(false); });
+
+  const links = [...document.querySelectorAll('.nav-links a, .menu a[href^="#"]')];
+  const spy = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (!e.isIntersecting) return;
+      links.forEach(a => a.setAttribute('aria-current', a.getAttribute('href') === '#' + e.target.id));
+    });
+  }, { rootMargin: '-45% 0px -50% 0px' });
+  ['top', 'year', 'features', 'how', 'privacy', 'faq'].forEach(id => spy.observe(document.getElementById(id)));
+
+  const copy = document.getElementById('copy');
+  const status = document.getElementById('copy-status');
+  copy.addEventListener('click', async () => {
+    const text = document.getElementById('cmd').textContent.split('\n').filter(l => !l.startsWith('#')).join('\n');
+    try {
+      await navigator.clipboard.writeText(text);
+      status.className = 'status';
+      status.textContent = 'Three commands copied. Paste them into a terminal.';
+      copy.querySelector('span').textContent = 'Copied';
+    } catch {
+      status.className = 'status error';
+      status.textContent = 'Copy failed. Select the commands and press Command C.';
+    }
+    setTimeout(() => { copy.querySelector('span').textContent = 'Copy'; }, 2400);
+  });
+})();
+</script>
+</body>
+</html>
