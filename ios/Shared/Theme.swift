@@ -7,15 +7,11 @@ enum Theme {
     static let surface = Color(hex: 0x24325C)
     static let text = Color(hex: 0xF4EBDD)
     static let cream = Color(hex: 0xF8E4BF)
-    static let muted = Color(hex: 0x8E95AD)
+    static let muted = Color(hex: 0xA3AAC2)
     static let tan = Color(hex: 0xE0A15E)
     static let ink = Color(hex: 0x1C2A50)
     static let flame = Color(hex: 0xF0913A)
-    static let linen = Color(hex: 0xEDE3D0)
-    static let wood = Color(hex: 0xB9844F)
     static let stitch = Color(hex: 0xF4EBDD).opacity(0.26)
-    /// Blue floss for the calendar, light to deep; level 0 is an empty day.
-    static let threads: [Color] = [.clear, Color(hex: 0x9CC1EE), Color(hex: 0x5B95E0), Color(hex: 0x2F6CC4), Color(hex: 0x1D4A8F)]
     /// A running stitch, for dashed edges.
     static let runningStitch = StrokeStyle(lineWidth: 1.5, lineCap: .round, dash: [5, 4])
 }

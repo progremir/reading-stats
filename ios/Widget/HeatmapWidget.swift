@@ -1,7 +1,7 @@
 import SwiftUI
 import WidgetKit
 
-/// Daily reading as cross stitch on linen: one column per week, Monday at the top.
+/// Daily reading as cross stitch: one column per week, Monday at the top.
 
 private func level(_ seconds: Int) -> Int {
     switch seconds {
@@ -24,24 +24,14 @@ private func weeks(_ days: [Int], ending today: Date = .now) -> [[Int?]] {
     return stride(from: 0, to: cells.count, by: 7).map { Array(cells[$0..<$0 + 7]) }
 }
 
-/// The calendar on a piece of linen in a thin wooden frame.
-struct Sampler: View {
-    let days: [Int]
-    var allWeeks = false
+/// Stitches rendered by the landing page's shader (Assets: Stitch1...4), one per reading level.
+/// Each image is the stitch plus a margin for its shadow, a sixth of the cell on every side.
+func stitchImage(_ level: Int) -> Image { Image("Stitch\(level)") }
+private let stitchMargin: CGFloat = 16.0 / 96.0
 
-    var body: some View {
-        HeatGrid(days: days, gap: 1, allWeeks: allWeeks)
-            .frame(maxWidth: .infinity)
-            .padding(6)
-            .background(Theme.linen, in: RoundedRectangle(cornerRadius: 8))
-            .padding(3)
-            .background(Theme.wood, in: RoundedRectangle(cornerRadius: 11))
-    }
-}
-
+/// The calendar stitched straight onto the cloth, cell against cell like real cross stitch.
 struct HeatGrid: View {
     let days: [Int]
-    var gap: CGFloat = 3
     /// Show every week, sized to the width; otherwise fill the height and show the weeks that fit.
     var allWeeks = false
 
@@ -50,53 +40,41 @@ struct HeatGrid: View {
         if allWeeks {
             let n = CGFloat(all.count)
             GeometryReader { geo in
-                grid(all, cell: (geo.size.width - gap * (n - 1)) / n)
+                grid(all, cell: min(geo.size.width / n, geo.size.height / 7))
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
-            .aspectRatio((n * 10 + (n - 1) * gap) / (70 + 6 * gap), contentMode: .fit)
+            .aspectRatio(n / 7, contentMode: .fit)
         } else {
             GeometryReader { geo in
-                let cell = (geo.size.height - gap * 6) / 7
-                let fit = max(1, Int((geo.size.width + gap) / (cell + gap)))
+                let cell = geo.size.height / 7
+                let fit = max(1, Int(geo.size.width / cell))
                 grid(Array(all.suffix(fit)), cell: cell)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .trailing)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
     }
 
     private func grid(_ shown: [[Int?]], cell: CGFloat) -> some View {
-        let step = cell + gap
-        return Canvas { ctx, _ in
+        Canvas { ctx, _ in
+            let stitches = (1...4).map { ctx.resolve(stitchImage($0)) }
+            // the holes of the aida cloth, so empty days still read as cloth waiting for thread
+            for w in 0...shown.count {
+                for d in 0...7 {
+                    let r = cell * 0.07
+                    ctx.fill(Path(ellipseIn: CGRect(x: CGFloat(w) * cell - r, y: CGFloat(d) * cell - r, width: 2 * r, height: 2 * r)),
+                             with: .color(.black.opacity(0.3)))
+                }
+            }
             for (w, week) in shown.enumerated() {
                 for d in 0..<7 {
-                    guard let seconds = week[d] else { continue }
-                    let rect = CGRect(x: CGFloat(w) * step, y: CGFloat(d) * step, width: cell, height: cell)
-                    let l = level(seconds)
-                    if l == 0 {
-                        ctx.fill(Path(ellipseIn: rect.insetBy(dx: cell * 0.42, dy: cell * 0.42)), with: .color(.black.opacity(0.18)))
-                    } else {
-                        crossStitch(ctx, in: rect, color: Theme.threads[l])
-                    }
+                    guard let seconds = week[d], level(seconds) > 0 else { continue }
+                    let m = cell * stitchMargin
+                    ctx.draw(stitches[level(seconds) - 1],
+                             in: CGRect(x: CGFloat(w) * cell - m, y: CGFloat(d) * cell - m, width: cell + 2 * m, height: cell + 2 * m))
                 }
             }
         }
-        .frame(width: CGFloat(shown.count) * step - gap, height: 7 * step - gap)
-    }
-
-    /// Two legs of floss, the second crossing over the first, with a soft shadow and a sheen.
-    private func crossStitch(_ ctx: GraphicsContext, in r: CGRect, color: Color) {
-        let inset = r.width * 0.1, width = r.width * 0.3
-        let a = r.insetBy(dx: inset, dy: inset)
-        let legs = [(CGPoint(x: a.minX, y: a.maxY), CGPoint(x: a.maxX, y: a.minY)),
-                    (CGPoint(x: a.minX, y: a.minY), CGPoint(x: a.maxX, y: a.maxY))]
-        for (from, to) in legs {
-            var leg = Path()
-            leg.move(to: from)
-            leg.addLine(to: to)
-            let shadow = leg.offsetBy(dx: width * 0.25, dy: width * 0.3)
-            ctx.stroke(shadow, with: .color(.black.opacity(0.18)), style: StrokeStyle(lineWidth: width, lineCap: .round))
-            ctx.stroke(leg, with: .color(color), style: StrokeStyle(lineWidth: width, lineCap: .round))
-            ctx.stroke(leg, with: .color(.white.opacity(0.28)), style: StrokeStyle(lineWidth: width * 0.3, lineCap: .round))
-        }
+        .frame(width: CGFloat(shown.count) * cell, height: 7 * cell)
     }
 }
 
@@ -123,10 +101,10 @@ struct HeatmapView: View {
                     .foregroundStyle(s.streak > 0 ? Theme.flame : Theme.muted)
             }
             if family == .systemSmall {
-                Sampler(days: days)
+                HeatGrid(days: days)
             } else {
                 Spacer(minLength: 0)
-                Sampler(days: days, allWeeks: true)
+                HeatGrid(days: days, allWeeks: true)
                 Spacer(minLength: 0)
             }
             if family == .systemLarge {
@@ -136,7 +114,7 @@ struct HeatmapView: View {
                     stat(Format.durationText(s.month), "this month")
                 }
                 if let book = s.book {
-                    Divider().overlay(Theme.stitch)
+                    Divider().overlay(Theme.surface)
                     VStack(alignment: .leading, spacing: 6) {
                         HStack(alignment: .firstTextBaseline) {
                             Text(book.title).font(.system(size: 16, weight: .semibold, design: .serif)).lineLimit(1)
@@ -166,7 +144,7 @@ struct HeatmapWidget: Widget {
         StaticConfiguration(kind: "ReadingHeatmap", provider: Provider()) { entry in
             HeatmapView(entry: entry)
                 .foregroundStyle(Theme.text)
-                .containerBackground(for: .widget) { ClothBackground() }
+                .containerBackground(for: .widget) { Theme.cloth }
         }
         .configurationDisplayName("Reading calendar")
         .description("Every day you read, one cross stitch per day.")

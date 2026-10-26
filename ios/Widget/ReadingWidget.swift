@@ -57,17 +57,6 @@ enum Cache {
 
 // MARK: - Pieces
 
-/// Night blue cloth with a running stitch just inside the edge, like a sewn on patch.
-struct ClothBackground: View {
-    var body: some View {
-        ZStack {
-            Theme.cloth
-            ContainerRelativeShape()
-                .inset(by: 6)
-                .stroke(Theme.stitch, style: Theme.runningStitch)
-        }
-    }
-}
 
 struct BigDuration: View {
     let seconds: Int
@@ -92,7 +81,7 @@ struct WeekBars: View {
         HStack(alignment: .bottom, spacing: 4) {
             ForEach(Array(values.enumerated()), id: \.offset) { index, value in
                 RoundedRectangle(cornerRadius: 2.5)
-                    .fill(value > 0 ? accent.opacity(index == values.count - 1 ? 1 : 0.7) : Theme.surface)
+                    .fill(index == values.count - 1 ? accent : value > 0 ? Color(hex: 0x4E6096) : Theme.surface)
                     .frame(maxWidth: .infinity)
                     .frame(height: max(3, CGFloat(value) / CGFloat(top) * 34))
             }
@@ -134,7 +123,7 @@ struct SmallView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
-                Text("Today").font(.system(size: 13, weight: .semibold)).foregroundStyle(muted)
+                Text("Today").font(.system(size: 13, weight: .semibold)).foregroundStyle(accent)
                 Spacer()
                 StreakLabel(streak: entry.snapshot.streak)
             }
@@ -157,7 +146,7 @@ struct MediumView: View {
             Link(destination: URL(string: "reading://")!) { SmallView(entry: entry) }
             VStack(alignment: .leading, spacing: 6) {
                 if let book = s.book {
-                    Text("Reading").font(.system(size: 13, weight: .semibold)).foregroundStyle(muted)
+                    Text("Reading").font(.system(size: 13, weight: .semibold)).foregroundStyle(accent)
                     Text(book.title)
                         .font(.system(size: 15, weight: .semibold, design: .serif))
                         .lineLimit(3)
@@ -167,7 +156,7 @@ struct MediumView: View {
                     Text("\(Int((book.progress * 100).rounded()))% read")
                         .font(.system(size: 11, weight: .medium)).foregroundStyle(muted)
                 } else {
-                    Text("This month").font(.system(size: 13, weight: .semibold)).foregroundStyle(muted)
+                    Text("This month").font(.system(size: 13, weight: .semibold)).foregroundStyle(accent)
                     BigDuration(seconds: s.month, size: 30)
                     Spacer()
                 }
@@ -236,7 +225,7 @@ struct ReadingWidget: Widget {
         StaticConfiguration(kind: "ReadingWidget", provider: Provider()) { entry in
             ReadingWidgetView(entry: entry)
                 .foregroundStyle(Theme.text)
-                .containerBackground(for: .widget) { ClothBackground() }
+                .containerBackground(for: .widget) { Theme.cloth }
         }
         .configurationDisplayName("Readstreak")
         .description("Today's reading time, streak and current book.")
