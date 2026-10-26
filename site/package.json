@@ -1,0 +1,13 @@
+{
+  "name": "readstreak-site",
+  "private": true,
+  "type": "module",
+  "description": "Deploys the landing page in ../docs to Cloudflare",
+  "scripts": {
+    "deploy": "cf deploy"
+  },
+  "devDependencies": {
+    "cf": "1.0.0-beta.21",
+    "wrangler": "^4.153.0"
+  }
+}

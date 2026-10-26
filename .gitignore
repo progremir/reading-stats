@@ -12,3 +12,8 @@ ios/Widget/*.entitlements
 ios/App/*.entitlements
 ios/Widget/*.entitlements
 .cookies
+
+# Cloudflare (cf / wrangler)
+.cloudflare/
+.wrangler/
+node_modules/
