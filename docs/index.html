@@ -394,14 +394,14 @@ footer { padding: var(--s-600) 0 var(--s-700); color: var(--faint); font-size: .
       <div class="reveal">
         <span class="kicker">Your year</span>
         <h2 class="h2" id="y-title">Half a year of reading, one stitch per day</h2>
-        <p class="lead">Every day you open a book on your Kobo becomes a square on your calendar. The brighter the thread, the longer you read.</p>
+        <p class="lead">Every day you open a book on your Kobo becomes a square on your calendar. The more vivid the thread, the longer you read.</p>
       </div>
       <div class="frame reveal">
         <div class="linen"><canvas class="sampler" id="sampler" role="img" aria-label="A 26 week reading calendar in cross stitch, with a 12 day streak"></canvas></div>
       </div>
       <div class="legend reveal">
         <span id="sampler-caption">Days read in the last 26 weeks</span>
-        <span class="swatches">Less <i style="background:#1C2A50;box-shadow:inset 0 0 0 1px rgba(244,235,221,.2)"></i><i style="background:#8C6440"></i><i style="background:#C27F45"></i><i style="background:#E0A15E"></i><i style="background:#F6D9A8"></i> More</span>
+        <span class="swatches">Less <i style="background:#1C2A50;box-shadow:inset 0 0 0 1px rgba(244,235,221,.2)"></i><i style="background:#75685E"></i><i style="background:#A87D55"></i><i style="background:#DC9145"></i><i style="background:#FFA832"></i> More</span>
       </div>
       <div class="tallies">
         <div class="tally patch reveal"><div class="n">42<small>min</small></div><p class="l">read today</p></div>
@@ -691,7 +691,7 @@ const hero = embroider(document.getElementById('cloth'), {
 owl.addEventListener('load', () => hero && hero.relayout());
 
 // Sampler: the reading calendar in cross stitch, the same threads as the web app and the widgets
-const LEVELS = ['', '#8C6440', '#C27F45', '#E0A15E', '#F6D9A8'];
+const LEVELS = ['', '#75685E', '#A87D55', '#DC9145', '#FFA832'];
 const FLAME = ['...o...', '...oo..', '..ooo..', '.ooooo.', '.ooyoo.', 'ooyyyoo', 'ooyyyoo', '.ooyoo.', '..ooo..'];
 function calendar(weeks) {
   const rand = rng(42), days = [];

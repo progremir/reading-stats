@@ -24,7 +24,7 @@ private func weeks(_ days: [Int], ending today: Date = .now) -> [[Int?]] {
     return stride(from: 0, to: cells.count, by: 7).map { Array(cells[$0..<$0 + 7]) }
 }
 
-/// Stitches rendered by the landing page's shader (Assets: Stitch1...4), one per reading level.
+/// Stitches rendered by the landing page's shader (Assets: Stitch1...4), one per reading level, dull to vivid amber.
 /// Each image is the stitch plus a margin for its shadow, a sixth of the cell on every side.
 func stitchImage(_ level: Int) -> Image { Image("Stitch\(level)") }
 private let stitchMargin: CGFloat = 16.0 / 96.0

@@ -23,10 +23,10 @@
     --ink: #1C2A50;
     --stitch: rgba(244, 235, 221, .26);
     --seq-0: #24325C;
-    --seq-1: #8C6440;
-    --seq-2: #C27F45;
-    --seq-3: #E0A15E;
-    --seq-4: #F6D9A8;
+    --seq-1: #75685E;
+    --seq-2: #A87D55;
+    --seq-3: #DC9145;
+    --seq-4: #FFA832;
     --grid: #2C3A62;
     --serif: ui-serif, "New York", Georgia, serif;
     --nav-h: 58px;
@@ -467,10 +467,10 @@ function mountHome() {
   sampler(document.getElementById("heat"), DATA.stats.days);
 }
 
-// The 26 weeks as cross stitch on night blue cloth, one stitch per day: tan to cream, brighter for longer reading.
+// The 26 weeks as cross stitch on night blue cloth, one stitch per day: dull to vivid amber, more vivid for longer reading.
 // The same threads as the widgets and the landing page.
 // One canvas lives across renders: WebGL contexts are costly and browsers cap how many a page holds.
-const STITCH_THREADS = ["", "#8C6440", "#C27F45", "#E0A15E", "#F6D9A8"];
+const STITCH_THREADS = ["", "#75685E", "#A87D55", "#DC9145", "#FFA832"];
 const readLevel = s => s < 60 ? 0 : s < 900 ? 1 : s < 1800 ? 2 : s < 3600 ? 3 : 4;
 const stitch = {canvas: document.createElement("canvas"), days: [], lead: 0, weeks: 26, margin: 1};
 let stitchReady = null;
